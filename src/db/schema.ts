@@ -89,6 +89,7 @@ export interface PackingItem {
   tripId: string
   label: string
   checked: boolean
+  order: number
   weightGrams?: number
 }
 
