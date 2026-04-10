@@ -15,7 +15,7 @@ interface Props {
   stop?: Stop       // provided when editing
 }
 
-const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, dayId, stop }) => {
+const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, dayId, stop }) => {
   const [placeName, setPlaceName] = useState('')
   const [lat, setLat] = useState<number | undefined>()
   const [lng, setLng] = useState<number | undefined>()

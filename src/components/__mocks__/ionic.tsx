@@ -1,6 +1,7 @@
 // src/components/__mocks__/ionic.tsx
 // Shared vi.mock factory — import in any test file:
 // vi.mock('@ionic/react', () => ionicMock)
+/// <reference types="vitest/globals" />
 
 export const ionicMock = {
   IonPage: ({ children }: any) => <div data-testid="ion-page">{children}</div>,

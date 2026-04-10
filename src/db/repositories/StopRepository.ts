@@ -31,7 +31,7 @@ export const StopRepository = {
     await db.stops.delete(id)
   },
 
-  async reorder(dayId: string, orderedIds: string[]): Promise<void> {
+  async reorder(_dayId: string, orderedIds: string[]): Promise<void> {
     await Promise.all(orderedIds.map((id, index) => db.stops.update(id, { order: index })))
   },
 }
