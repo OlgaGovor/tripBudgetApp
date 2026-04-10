@@ -13,6 +13,7 @@ export function isOvernightTransport(leg: Pick<TransportLeg, 'departureDateTime'
 type CreateInput = {
   tripId: string
   fromStopId: string
+  toStopId?: string          // if provided, reuse this existing stop instead of creating new
   method: TransportLeg['method']
   status: TransportLeg['status']
   departureDateTime?: string
@@ -66,26 +67,31 @@ export const TransportLegRepository = {
   },
 
   async create(input: CreateInput): Promise<string> {
-    const { tripId, fromStopId, destinationName, destinationLat, destinationLng, arrivalDateTime, ...rest } = input
+    const { tripId, fromStopId, toStopId: existingToStopId, destinationName, destinationLat, destinationLng, arrivalDateTime, ...rest } = input
 
-    let destDayId: string
-    if (arrivalDateTime) {
-      destDayId = await findOrCreateArrivalDay(tripId, arrivalDateTime)
+    let toStopId: string
+    if (existingToStopId) {
+      toStopId = existingToStopId
     } else {
-      const fromStop = await db.stops.get(fromStopId)
-      if (!fromStop) throw new Error(`Stop ${fromStopId} not found`)
-      destDayId = fromStop.dayId
-    }
+      let destDayId: string
+      if (arrivalDateTime) {
+        destDayId = await findOrCreateArrivalDay(tripId, arrivalDateTime)
+      } else {
+        const fromStop = await db.stops.get(fromStopId)
+        if (!fromStop) throw new Error(`Stop ${fromStopId} not found`)
+        destDayId = fromStop.dayId
+      }
 
-    const existingStops = await StopRepository.getByDayId(destDayId)
-    const toStopId = await StopRepository.create({
-      dayId: destDayId,
-      order: existingStops.length,
-      placeName: destinationName,
-      lat: destinationLat,
-      lng: destinationLng,
-      usefulLinks: [],
-    })
+      const existingStops = await StopRepository.getByDayId(destDayId)
+      toStopId = await StopRepository.create({
+        dayId: destDayId,
+        order: existingStops.length,
+        placeName: destinationName,
+        lat: destinationLat,
+        lng: destinationLng,
+        usefulLinks: [],
+      })
+    }
 
     const id = uuidv4()
     await db.transportLegs.add({

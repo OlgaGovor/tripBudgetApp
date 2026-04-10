@@ -37,6 +37,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
   const [destinationName, setDestinationName] = useState('')
   const [destinationLat, setDestinationLat] = useState<number | undefined>()
   const [destinationLng, setDestinationLng] = useState<number | undefined>()
+  const [selectedToStopId, setSelectedToStopId] = useState<string | undefined>()
   const [bookingLink, setBookingLink] = useState('')
   const [notes, setNotes] = useState('')
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
@@ -53,10 +54,11 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     setMethod(leg?.method ?? 'train')
     setStatus(leg?.status ?? 'not_booked')
     setDepartureDateTime(leg?.departureDateTime ?? (initialDate ? `${initialDate}T12:00` : ''))
-    setArrivalDateTime(leg?.arrivalDateTime ?? '')
+    setArrivalDateTime(leg?.arrivalDateTime ?? (initialDate ? `${initialDate}T12:00` : ''))
     setDestinationName(toStop?.placeName ?? '')
     setDestinationLat(toStop?.lat)
     setDestinationLng(toStop?.lng)
+    setSelectedToStopId(undefined)
     setBookingLink(leg?.bookingLink ?? '')
     setNotes(leg?.notes ?? '')
   }, [isOpen, leg?.id, toStop]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -77,7 +79,9 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
       })
     } else {
       await TransportLegRepository.create({
-        tripId, fromStopId, method, status,
+        tripId, fromStopId,
+        toStopId: selectedToStopId,
+        method, status,
         departureDateTime: departureDateTime || undefined,
         arrivalDateTime: arrivalDateTime || undefined,
         destinationName, destinationLat, destinationLng,
@@ -128,24 +132,18 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             </IonLabel>
           </IonItem>
           {!leg && otherStops && otherStops.length > 0 && (
-            <div style={{ padding: '0.5rem 1rem 0' }}>
-              <p style={{ margin: '0 0 0.4rem', fontSize: '0.78rem', color: 'var(--ion-color-medium)' }}>Quick-select stop:</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {otherStops.map(s => (
-                  <div
-                    key={s.id}
-                    onClick={() => { setDestinationName(s.placeName); setDestinationLat(s.lat); setDestinationLng(s.lng) }}
-                    style={{
-                      padding: '4px 10px', borderRadius: 16,
-                      background: destinationName === s.placeName ? 'var(--ion-color-primary)' : 'var(--ion-color-light)',
-                      color: destinationName === s.placeName ? '#fff' : 'inherit',
-                      cursor: 'pointer', fontSize: '0.85rem',
-                    }}
-                  >
-                    {s.placeName}
-                  </div>
-                ))}
-              </div>
+            <div style={{ padding: '0.25rem 0 0' }}>
+              {otherStops.map(s => (
+                <IonItem
+                  key={s.id}
+                  button
+                  detail={false}
+                  onClick={() => { setDestinationName(s.placeName); setDestinationLat(s.lat); setDestinationLng(s.lng); setSelectedToStopId(s.id) }}
+                  style={selectedToStopId === s.id ? { '--background': 'var(--ion-color-primary)', '--color': '#fff' } as React.CSSProperties : {}}
+                >
+                  <IonLabel>{s.placeName}</IonLabel>
+                </IonItem>
+              ))}
             </div>
           )}
           <IonItem>
@@ -162,7 +160,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
       <PlaceSearchModal
         isOpen={showPlaceSearch}
         onDismiss={() => setShowPlaceSearch(false)}
-        onSelect={r => { setDestinationName(r.name); setDestinationLat(r.lat); setDestinationLng(r.lng) }}
+        onSelect={r => { setDestinationName(r.name); setDestinationLat(r.lat); setDestinationLng(r.lng); setSelectedToStopId(undefined) }}
         title="Search destination"
       />
     </>
