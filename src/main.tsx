@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { IonApp, setupIonicReact } from '@ionic/react'
 import App from './App'
+import { ExpenseCategoryRepository } from './db/repositories/ExpenseCategoryRepository'
 
 import './index.css'
 
@@ -18,6 +19,7 @@ import '@ionic/react/css/flex-utils.css'
 import '@ionic/react/css/display.css'
 
 setupIonicReact()
+ExpenseCategoryRepository.ensureSeeded()
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
