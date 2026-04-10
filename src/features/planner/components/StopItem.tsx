@@ -12,7 +12,7 @@ interface Props {
   stop: Stop
   tripId: string
   legsFromThisStop: TransportLeg[]
-  dayStops?: Stop[]
+  nearbyStops?: Array<{ stop: Stop; dayNumber: number }>
   dayDate?: string
   canMoveUp?: boolean
   canMoveDown?: boolean
@@ -20,7 +20,7 @@ interface Props {
   onMoveDown?: () => void
 }
 
-const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, dayStops, dayDate, canMoveUp, canMoveDown, onMoveUp, onMoveDown }) => {
+const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, nearbyStops, dayDate, canMoveUp, canMoveDown, onMoveUp, onMoveDown }) => {
   const [showTransportForm, setShowTransportForm] = useState(false)
   const [showStopEditForm, setShowStopEditForm] = useState(false)
 
@@ -33,7 +33,7 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, dayStops, d
     }
   }
 
-  const otherStops = dayStops?.filter(s => s.id !== stop.id)
+  const nearbyOtherStops = nearbyStops?.filter(ns => ns.stop.id !== stop.id)
 
   return (
     <div style={{ padding: '0.5rem 1rem', borderLeft: '3px solid var(--ion-color-primary)', marginLeft: '1rem', marginBottom: '0.5rem' }}>
@@ -75,7 +75,7 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, dayStops, d
             onDismiss={() => setShowTransportForm(false)}
             tripId={tripId}
             fromStopId={stop.id}
-            otherStops={otherStops}
+            nearbyStops={nearbyOtherStops}
             initialDate={dayDate}
           />
         </>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { IonButton, IonIcon } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline, addOutline } from 'ionicons/icons'
-import type { Day, TransportLeg } from '../../../db/schema'
+import { useLiveQuery } from 'dexie-react-hooks'
+import type { Day, Stop, TransportLeg } from '../../../db/schema'
+import { db } from '../../../db/db'
 import { useStops } from '../hooks/useStops'
 import { useTransportLegs } from '../hooks/useTransportLegs'
 import { useAccommodations } from '../hooks/useAccommodations'
@@ -20,6 +22,12 @@ interface Props {
   day: Day
   tripId: string
   isLastDay?: boolean
+}
+
+function addDaysToDateStr(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
 }
 
 function formatDate(dateStr: string): string {
@@ -66,6 +74,25 @@ const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
   const { stops } = useStops(day.id)
   const { legs } = useTransportLegs(tripId)
   const { accommodations } = useAccommodations(tripId)
+
+  const nearbyStops = useLiveQuery<Array<{ stop: Stop; dayNumber: number }>>(
+    async () => {
+      const endDate = addDaysToDateStr(day.date, 3)
+      const nearbyDays = await db.days
+        .where('tripId').equals(tripId)
+        .filter(dd => dd.date >= day.date && dd.date <= endDate)
+        .sortBy('date')
+      const result: Array<{ stop: Stop; dayNumber: number }> = []
+      for (const nd of nearbyDays) {
+        const ndStops = await db.stops.where('dayId').equals(nd.id).sortBy('order')
+        for (const s of ndStops) {
+          result.push({ stop: s, dayNumber: nd.dayNumber })
+        }
+      }
+      return result
+    },
+    [tripId, day.date]
+  )
 
   const dayAccom = accommodations.find(a => a.id === day.accommodationId)
   const legsForStop = (stopId: string): TransportLeg[] =>
@@ -132,7 +159,7 @@ const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
               stop={stop}
               tripId={tripId}
               legsFromThisStop={legsForStop(stop.id)}
-              dayStops={stops}
+              nearbyStops={nearbyStops ?? []}
               dayDate={day.date}
               canMoveUp={i > 0}
               canMoveDown={i < stops.length - 1}

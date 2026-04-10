@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import {
-  IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
+  IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
 } from '@ionic/react'
+import { searchOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import type { Stop, TransportLeg } from '../../../db/schema'
@@ -25,11 +26,11 @@ interface Props {
   tripId: string
   fromStopId: string
   leg?: TransportLeg
-  otherStops?: Stop[]
+  nearbyStops?: Array<{ stop: Stop; dayNumber: number }>
   initialDate?: string
 }
 
-const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg, otherStops, initialDate }) => {
+const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg, nearbyStops, initialDate }) => {
   const [method, setMethod] = useState<TransportLeg['method']>('train')
   const [status, setStatus] = useState<TransportLeg['status']>('not_booked')
   const [departureDateTime, setDepartureDateTime] = useState('')
@@ -125,27 +126,39 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             <IonLabel position="stacked">Arrival date & time</IonLabel>
             <IonInput type="datetime-local" value={arrivalDateTime} onIonInput={e => setArrivalDateTime(e.detail.value ?? '')} />
           </IonItem>
-          <IonItem button onClick={() => setShowPlaceSearch(true)}>
-            <IonLabel>
-              <h3>Destination *</h3>
-              <p>{destinationName || 'Search or enter destination...'}</p>
-            </IonLabel>
-          </IonItem>
-          {!leg && otherStops && otherStops.length > 0 && (
-            <div style={{ padding: '0.25rem 0 0' }}>
-              {otherStops.map(s => (
-                <IonItem
-                  key={s.id}
-                  button
-                  detail={false}
-                  onClick={() => { setDestinationName(s.placeName); setDestinationLat(s.lat); setDestinationLng(s.lng); setSelectedToStopId(s.id) }}
-                  style={selectedToStopId === s.id ? { '--background': 'var(--ion-color-primary)', '--color': '#fff' } as React.CSSProperties : {}}
-                >
-                  <IonLabel>{s.placeName}</IonLabel>
-                </IonItem>
-              ))}
+          <IonItem>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
+              <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500 }}>Destination *</span>
+              <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
+                {!leg && nearbyStops?.map(ns => (
+                  <div
+                    key={ns.stop.id}
+                    onClick={() => { setDestinationName(ns.stop.placeName); setDestinationLat(ns.stop.lat); setDestinationLng(ns.stop.lng); setSelectedToStopId(ns.stop.id) }}
+                    style={{
+                      flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
+                      background: selectedToStopId === ns.stop.id ? 'var(--ion-color-primary)' : 'var(--ion-color-light-shade)',
+                      color: selectedToStopId === ns.stop.id ? '#fff' : 'inherit',
+                      cursor: 'pointer', fontSize: '0.82rem',
+                    }}
+                  >
+                    {ns.stop.placeName}
+                    <span style={{ fontSize: '0.72rem', opacity: 0.7, marginLeft: 3 }}>D{ns.dayNumber}</span>
+                  </div>
+                ))}
+                {!selectedToStopId && destinationName && (
+                  <div style={{
+                    flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
+                    background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',
+                  }}>
+                    {destinationName}
+                  </div>
+                )}
+              </div>
+              <IonButton fill="clear" size="small" style={{ flexShrink: 0 }} onClick={() => setShowPlaceSearch(true)}>
+                <IonIcon icon={searchOutline} />
+              </IonButton>
             </div>
-          )}
+          </IonItem>
           <IonItem>
             <IonLabel position="stacked">Booking link</IonLabel>
             <IonInput value={bookingLink} onIonInput={e => setBookingLink(e.detail.value ?? '')} placeholder="https://..." />
