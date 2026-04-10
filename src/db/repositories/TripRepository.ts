@@ -27,12 +27,15 @@ export const TripRepository = {
   async update(input: TripUpdate): Promise<void> {
     const { id, ...rest } = input
     const now = new Date().toISOString()
-    await db.trips.update(id, { ...rest, updatedAt: now })
     if (rest.startDate !== undefined || rest.endDate !== undefined) {
-      const trip = await db.trips.get(id)
-      if (trip) {
-        await DayRepository.regenerateForTrip(id, trip.startDate, trip.endDate)
-      }
+      const existing = await db.trips.get(id)
+      if (!existing) return
+      const newStart = rest.startDate ?? existing.startDate
+      const newEnd = rest.endDate ?? existing.endDate
+      await db.trips.update(id, { ...rest, updatedAt: now })
+      await DayRepository.regenerateForTrip(id, newStart, newEnd)
+    } else {
+      await db.trips.update(id, { ...rest, updatedAt: now })
     }
   },
 

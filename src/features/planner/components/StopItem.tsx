@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { IonButton, IonIcon } from '@ionic/react'
 import { addOutline, pencilOutline, trashOutline } from 'ionicons/icons'
 import type { Stop, TransportLeg } from '../../../db/schema'
+import { db } from '../../../db/db'
 import { StopRepository } from '../../../db/repositories/StopRepository'
+import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import TransportLegItem from './TransportLegItem'
 import TransportLegFormModal from './TransportLegFormModal'
 import StopFormModal from './StopFormModal'
@@ -18,7 +20,12 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop }) => {
   const [showStopEditForm, setShowStopEditForm] = useState(false)
 
   async function handleDelete() {
-    await StopRepository.delete(stop.id)
+    const legUsingThisAsDestination = await db.transportLegs.where('toStopId').equals(stop.id).first()
+    if (legUsingThisAsDestination) {
+      await TransportLegRepository.delete(legUsingThisAsDestination.id)
+    } else {
+      await StopRepository.delete(stop.id)
+    }
   }
 
   return (

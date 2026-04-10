@@ -40,9 +40,12 @@ export const DayRepository = {
     const existing = await db.days.where('tripId').equals(tripId).toArray()
     const existingByDate = new Map(existing.map(d => [d.date, d]))
 
-    // Delete days outside new range
+    // Delete days outside new range (and their stops)
     const toDelete = existing.filter(d => !targetDates.has(d.date)).map(d => d.id)
-    if (toDelete.length) await db.days.bulkDelete(toDelete)
+    if (toDelete.length) {
+      await db.stops.where('dayId').anyOf(toDelete).delete()
+      await db.days.bulkDelete(toDelete)
+    }
 
     // Add missing days (placeholder dayNumber; renumbered below)
     const toAdd: Day[] = [...targetDates]
