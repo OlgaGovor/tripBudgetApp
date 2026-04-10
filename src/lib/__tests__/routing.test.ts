@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchRoadRoute, greatCircleArc } from '../routing'
 
-beforeEach(() => { vi.restoreAllMocks() })
+beforeEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('greatCircleArc', () => {
   it('returns 20 interpolated points between two coordinates', () => {
@@ -11,6 +11,7 @@ describe('greatCircleArc', () => {
     expect(points[0][0]).toBeCloseTo(48.85, 1)
     // Last point near London
     expect(points[19][0]).toBeCloseTo(51.50, 1)
+    expect(points[19][1]).toBeCloseTo(-0.12, 1)
   })
 })
 

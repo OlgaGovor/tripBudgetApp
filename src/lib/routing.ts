@@ -15,7 +15,7 @@ export async function fetchRoadRoute(
   )
 }
 
-/** Linear interpolation of 20 points along a great-circle arc (good enough for display). */
+/** Linear interpolation of 20 points between two coordinates in lat/lng space (rhumb line, good enough for short routes). */
 export function greatCircleArc(
   from: { lat: number; lng: number },
   to: { lat: number; lng: number },
