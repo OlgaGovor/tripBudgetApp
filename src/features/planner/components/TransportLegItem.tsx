@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { IonButton, IonIcon } from '@ionic/react'
-import { trashOutline } from 'ionicons/icons'
+import { pencilOutline, trashOutline } from 'ionicons/icons'
 import type { TransportLeg } from '../../../db/schema'
 import { TransportLegRepository, isOvernightTransport } from '../../../db/repositories/TransportLegRepository'
+import TransportLegFormModal from './TransportLegFormModal'
 
 const METHOD_ICONS: Record<TransportLeg['method'], string> = {
   car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
@@ -13,6 +15,8 @@ const STATUS_COLORS: Record<TransportLeg['status'], string> = {
 interface Props { leg: TransportLeg }
 
 const TransportLegItem: React.FC<Props> = ({ leg }) => {
+  const [showEditForm, setShowEditForm] = useState(false)
+
   async function handleDelete() {
     await TransportLegRepository.delete(leg.id)
   }
@@ -26,9 +30,20 @@ const TransportLegItem: React.FC<Props> = ({ leg }) => {
       {leg.arrivalDateTime && <span>→ {leg.arrivalDateTime.slice(11, 16)}</span>}
       {overnight && <span style={{ fontSize: '0.7rem', background: '#9b59b6', color: '#fff', borderRadius: 4, padding: '1px 4px' }}>overnight</span>}
       <span style={{ width: 10, height: 10, borderRadius: '50%', background: STATUS_COLORS[leg.status] }} />
+      <IonButton fill="clear" size="small" onClick={() => setShowEditForm(true)}>
+        <IonIcon icon={pencilOutline} />
+      </IonButton>
       <IonButton fill="clear" size="small" color="danger" onClick={handleDelete}>
         <IonIcon icon={trashOutline} />
       </IonButton>
+
+      <TransportLegFormModal
+        isOpen={showEditForm}
+        onDismiss={() => setShowEditForm(false)}
+        tripId={leg.tripId}
+        fromStopId={leg.fromStopId}
+        leg={leg}
+      />
     </div>
   )
 }

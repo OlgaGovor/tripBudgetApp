@@ -52,16 +52,19 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop }) => {
         <TransportLegItem key={leg.id} leg={leg} />
       ))}
 
-      <IonButton fill="clear" size="small" onClick={() => setShowTransportForm(true)}>
-        <IonIcon icon={addOutline} /> Add transport
-      </IonButton>
-
-      <TransportLegFormModal
-        isOpen={showTransportForm}
-        onDismiss={() => setShowTransportForm(false)}
-        tripId={tripId}
-        fromStopId={stop.id}
-      />
+      {legsFromThisStop.length === 0 && (
+        <>
+          <IonButton fill="clear" size="small" onClick={() => setShowTransportForm(true)}>
+            <IonIcon icon={addOutline} /> Add transport
+          </IonButton>
+          <TransportLegFormModal
+            isOpen={showTransportForm}
+            onDismiss={() => setShowTransportForm(false)}
+            tripId={tripId}
+            fromStopId={stop.id}
+          />
+        </>
+      )}
       <StopFormModal
         isOpen={showStopEditForm}
         onDismiss={() => setShowStopEditForm(false)}

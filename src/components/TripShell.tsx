@@ -10,18 +10,18 @@ const MapPage: React.FC = () => <div>Map</div>
 const PackingPage: React.FC = () => <div>Packing</div>
 
 const TripShell: React.FC = () => {
-  const { url, params } = useRouteMatch<{ tripId: string }>()
+  const { url, path, params } = useRouteMatch<{ tripId: string }>()
   const { tripId } = params
 
   return (
     <IonTabs>
       <IonRouterOutlet>
-        <Route exact path={`${url}/plan`} component={PlannerPage} />
-        <Route exact path={`${url}/calendar`} component={CalendarPage} />
-        <Route exact path={`${url}/expenses`} component={ExpensesPage} />
-        <Route exact path={`${url}/map`} component={MapPage} />
-        <Route exact path={`${url}/packing`} component={PackingPage} />
-        <Redirect exact from={url} to={`${url}/plan`} />
+        <Route exact path={`${path}/plan`} component={PlannerPage} />
+        <Route exact path={`${path}/calendar`} component={CalendarPage} />
+        <Route exact path={`${path}/expenses`} component={ExpensesPage} />
+        <Route exact path={`${path}/map`} component={MapPage} />
+        <Route exact path={`${path}/packing`} component={PackingPage} />
+        <Route exact path={path} render={() => <Redirect to={`${url}/plan`} />} />
       </IonRouterOutlet>
 
       <IonTabBar slot="bottom">

@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
 } from '@ionic/react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import type { TransportLeg } from '../../../db/schema'
+import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
 
 const METHODS: TransportLeg['method'][] = ['car', 'bus', 'train', 'plane', 'walk', 'boat', 'ferry']
@@ -22,9 +24,10 @@ interface Props {
   onDismiss: () => void
   tripId: string
   fromStopId: string
+  leg?: TransportLeg
 }
 
-const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId }) => {
+const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg }) => {
   const [method, setMethod] = useState<TransportLeg['method']>('train')
   const [status, setStatus] = useState<TransportLeg['status']>('not_booked')
   const [departureDateTime, setDepartureDateTime] = useState('')
@@ -36,16 +39,50 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
   const [notes, setNotes] = useState('')
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
 
+  const toStop = useLiveQuery(
+    () => leg?.toStopId ? db.stops.get(leg.toStopId) : Promise.resolve(undefined),
+    [leg?.toStopId]
+  )
+
+  // Reinitialise all fields when modal opens or the leg being edited changes.
+  // toStop is included so destination fills in once the liveQuery resolves.
+  useEffect(() => {
+    if (!isOpen) return
+    setMethod(leg?.method ?? 'train')
+    setStatus(leg?.status ?? 'not_booked')
+    setDepartureDateTime(leg?.departureDateTime ?? '')
+    setArrivalDateTime(leg?.arrivalDateTime ?? '')
+    setDestinationName(toStop?.placeName ?? '')
+    setDestinationLat(toStop?.lat)
+    setDestinationLng(toStop?.lng)
+    setBookingLink(leg?.bookingLink ?? '')
+    setNotes(leg?.notes ?? '')
+  }, [isOpen, leg?.id, toStop]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSave() {
     if (!destinationName.trim()) return
-    await TransportLegRepository.create({
-      tripId, fromStopId, method, status,
-      departureDateTime: departureDateTime || undefined,
-      arrivalDateTime: arrivalDateTime || undefined,
-      destinationName, destinationLat, destinationLng,
-      bookingLink: bookingLink || undefined,
-      notes: notes || undefined,
-    })
+    if (leg) {
+      await TransportLegRepository.update({
+        id: leg.id,
+        method, status,
+        departureDateTime: departureDateTime || undefined,
+        arrivalDateTime: arrivalDateTime || undefined,
+        destinationName,
+        destinationLat,
+        destinationLng,
+        bookingLink: bookingLink || undefined,
+        notes: notes || undefined,
+      })
+    } else {
+      await TransportLegRepository.create({
+        tripId, fromStopId, method, status,
+        departureDateTime: departureDateTime || undefined,
+        arrivalDateTime: arrivalDateTime || undefined,
+        destinationName, destinationLat, destinationLng,
+        bookingLink: bookingLink || undefined,
+        notes: notes || undefined,
+      })
+    }
     onDismiss()
   }
 
@@ -55,7 +92,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         <IonHeader>
           <IonToolbar>
             <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
-            <IonTitle>Add Transport</IonTitle>
+            <IonTitle>{leg ? 'Edit Transport' : 'Add Transport'}</IonTitle>
             <IonButtons slot="end">
               <IonButton strong onClick={handleSave} disabled={!destinationName.trim()}>Save</IonButton>
             </IonButtons>

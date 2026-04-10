@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { IonApp, setupIonicReact } from '@ionic/react'
 import App from './App'
 
+import './index.css'
+
 /* Ionic CSS — order matters */
 import '@ionic/react/css/core.css'
 import '@ionic/react/css/normalize.css'

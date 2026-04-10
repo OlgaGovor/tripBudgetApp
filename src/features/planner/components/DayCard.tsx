@@ -14,6 +14,7 @@ import AccommodationFormModal from './AccommodationFormModal'
 interface Props {
   day: Day
   tripId: string
+  isLastDay?: boolean
 }
 
 function formatDate(dateStr: string): string {
@@ -53,7 +54,7 @@ const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
   )
 }
 
-const DayCard: React.FC<Props> = ({ day, tripId }) => {
+const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [showStopForm, setShowStopForm] = useState(false)
   const [showAccomForm, setShowAccomForm] = useState(false)
@@ -79,7 +80,7 @@ const DayCard: React.FC<Props> = ({ day, tripId }) => {
         <div style={{ paddingBottom: '0.5rem' }}>
           {dayAccom
             ? <AccommodationBlock accommodation={dayAccom} />
-            : (
+            : !isLastDay && (
               <IonButton fill="clear" size="small" style={{ marginLeft: '0.5rem' }} onClick={() => setShowAccomForm(true)}>
                 <IonIcon icon={addOutline} /> Add accommodation
               </IonButton>

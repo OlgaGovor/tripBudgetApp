@@ -2,7 +2,7 @@ import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonButtons,
   IonInput, IonItem, IonLabel, IonSelect, IonSelectOption,
 } from '@ionic/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import type { Trip } from '../../../db/schema'
 
@@ -23,6 +23,17 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
   const [startDate, setStartDate] = useState(trip?.startDate ?? '')
   const [endDate, setEndDate] = useState(trip?.endDate ?? '')
   const [currency, setCurrency] = useState(trip?.defaultCurrency ?? 'EUR')
+
+  // Sync form fields when trip data first becomes available (e.g. loaded from DB after mount)
+  useEffect(() => {
+    setName(trip?.name ?? '')
+    setDestination(trip?.destination ?? '')
+    setEmoji(trip?.emoji ?? '✈️')
+    setCoverColor(trip?.coverColor ?? COLORS[0])
+    setStartDate(trip?.startDate ?? '')
+    setEndDate(trip?.endDate ?? '')
+    setCurrency(trip?.defaultCurrency ?? 'EUR')
+  }, [trip?.id])
 
   async function handleSave() {
     if (!name.trim() || !startDate || !endDate) return
