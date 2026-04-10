@@ -46,8 +46,10 @@ async function findOrCreateArrivalDay(tripId: string, arrivalDateTime: string): 
     const trip = await db.trips.get(tripId)
     if (!trip) throw new Error(`Trip ${tripId} not found`)
     if (arrivalDate > trip.endDate) {
-      await db.trips.update(tripId, { endDate: arrivalDate, updatedAt: new Date().toISOString() })
-      await DayRepository.regenerateForTrip(tripId, trip.startDate, arrivalDate)
+      await db.transaction('rw', [db.trips, db.days], async () => {
+        await db.trips.update(tripId, { endDate: arrivalDate, updatedAt: new Date().toISOString() })
+        await DayRepository.regenerateForTrip(tripId, trip.startDate, arrivalDate)
+      })
     }
     day = await db.days.where('tripId').equals(tripId).filter(d => d.date === arrivalDate).first()
   }

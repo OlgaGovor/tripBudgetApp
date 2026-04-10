@@ -18,13 +18,11 @@ beforeEach(async () => {
 
 describe('isOvernightTransport', () => {
   it('returns true when arrival date is after departure date', () => {
-    const leg = { departureDateTime: '2026-06-01T22:00:00', arrivalDateTime: '2026-06-02T06:00:00' }
-    expect(isOvernightTransport(leg as any)).toBe(true)
+    expect(isOvernightTransport({ departureDateTime: '2026-06-01T22:00:00', arrivalDateTime: '2026-06-02T06:00:00' })).toBe(true)
   })
 
   it('returns false when same day', () => {
-    const leg = { departureDateTime: '2026-06-01T10:00:00', arrivalDateTime: '2026-06-01T14:00:00' }
-    expect(isOvernightTransport(leg as any)).toBe(false)
+    expect(isOvernightTransport({ departureDateTime: '2026-06-01T10:00:00', arrivalDateTime: '2026-06-01T14:00:00' })).toBe(false)
   })
 })
 
@@ -66,6 +64,31 @@ describe('TransportLegRepository.create', () => {
     expect(trip?.endDate).toBe('2026-06-05')
     const day5 = await db.days.where('tripId').equals('trip1').filter(d => d.date === '2026-06-05').first()
     expect(day5).toBeTruthy()
+  })
+})
+
+describe('TransportLegRepository.update', () => {
+  it('moves destination stop to new arrival day when arrivalDateTime changes', async () => {
+    const legId = await TransportLegRepository.create({
+      tripId: 'trip1', fromStopId: 'stop1', method: 'train', status: 'not_booked',
+      arrivalDateTime: '2026-06-02T06:00:00', destinationName: 'Brussels',
+    })
+    const leg = (await db.transportLegs.get(legId))!
+    await TransportLegRepository.update({ id: legId, arrivalDateTime: '2026-06-03T10:00:00' })
+    const day3 = (await db.days.where('tripId').equals('trip1').filter(d => d.date === '2026-06-03').first())!
+    const destStop = await db.stops.get(leg.toStopId)
+    expect(destStop?.dayId).toBe(day3.id)
+  })
+
+  it('updates destination name on the destination stop', async () => {
+    const legId = await TransportLegRepository.create({
+      tripId: 'trip1', fromStopId: 'stop1', method: 'bus', status: 'not_booked',
+      arrivalDateTime: '2026-06-02T10:00:00', destinationName: 'Old Name',
+    })
+    const leg = (await db.transportLegs.get(legId))!
+    await TransportLegRepository.update({ id: legId, destinationName: 'New Name' })
+    const destStop = await db.stops.get(leg.toStopId)
+    expect(destStop?.placeName).toBe('New Name')
   })
 })
 
