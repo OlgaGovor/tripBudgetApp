@@ -30,6 +30,11 @@ export function convertAmount(
   rates: Record<string, number>
 ): number {
   if (fromCurrency === toCurrency) return amount
-  const inEur = amount / (rates[fromCurrency] ?? 1)
-  return inEur * (rates[toCurrency] ?? 1)
+  const fromRate = rates[fromCurrency]
+  const toRate = rates[toCurrency]
+  if (fromRate === undefined || toRate === undefined) {
+    throw new Error(`Unknown currency: ${fromRate === undefined ? fromCurrency : toCurrency}`)
+  }
+  const inEur = amount / fromRate
+  return inEur * toRate
 }

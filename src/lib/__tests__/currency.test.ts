@@ -15,6 +15,10 @@ describe('convertAmount', () => {
   it('returns same amount when currencies are equal', () => {
     expect(convertAmount(50, 'EUR', 'EUR', rates)).toBe(50)
   })
+
+  it('throws for unknown currency code', () => {
+    expect(() => convertAmount(100, 'XYZ', 'EUR', rates)).toThrow('Unknown currency: XYZ')
+  })
 })
 
 describe('getExchangeRates', () => {
