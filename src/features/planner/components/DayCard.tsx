@@ -6,10 +6,15 @@ import { useStops } from '../hooks/useStops'
 import { useTransportLegs } from '../hooks/useTransportLegs'
 import { useAccommodations } from '../hooks/useAccommodations'
 import { DayRepository } from '../../../db/repositories/DayRepository'
+import { StopRepository } from '../../../db/repositories/StopRepository'
 import StopItem from './StopItem'
 import AccommodationBlock from './AccommodationBlock'
 import StopFormModal from './StopFormModal'
 import AccommodationFormModal from './AccommodationFormModal'
+
+const METHOD_ICONS: Record<TransportLeg['method'], string> = {
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+}
 
 interface Props {
   day: Day
@@ -66,6 +71,19 @@ const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
   const legsForStop = (stopId: string): TransportLeg[] =>
     legs.filter(l => l.fromStopId === stopId)
 
+  const inTransitLegs = legs.filter(l => {
+    if (!l.departureDateTime || !l.arrivalDateTime) return false
+    const depDate = l.departureDateTime.slice(0, 10)
+    const arrDate = l.arrivalDateTime.slice(0, 10)
+    return depDate < day.date && day.date <= arrDate
+  })
+
+  function swapStops(i: number, j: number): string[] {
+    const ids = stops.map(s => s.id)
+    ;[ids[i], ids[j]] = [ids[j], ids[i]]
+    return ids
+  }
+
   return (
     <div style={{ borderRadius: 12, margin: '0.75rem 1rem', background: 'var(--ion-color-light)', overflow: 'hidden' }}>
       <div
@@ -87,8 +105,40 @@ const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
             )
           }
 
-          {stops.map(stop => (
-            <StopItem key={stop.id} stop={stop} tripId={tripId} legsFromThisStop={legsForStop(stop.id)} />
+          {inTransitLegs.map(leg => {
+            const isArrivalDay = leg.arrivalDateTime?.slice(0, 10) === day.date
+            return (
+              <div key={leg.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '0.4rem 1rem', background: 'rgba(155,89,182,0.1)', borderRadius: 8, margin: '0.25rem 1rem',
+                fontSize: '0.9rem',
+              }}>
+                <span>{METHOD_ICONS[leg.method]}</span>
+                <span style={{ flex: 1 }}>
+                  In transit
+                  {isArrivalDay && leg.arrivalDateTime && (
+                    <span style={{ fontSize: '0.8rem', marginLeft: 4, color: 'var(--ion-color-medium)' }}>
+                      · arrives {leg.arrivalDateTime.slice(11, 16)}
+                    </span>
+                  )}
+                </span>
+              </div>
+            )
+          })}
+
+          {stops.map((stop, i) => (
+            <StopItem
+              key={stop.id}
+              stop={stop}
+              tripId={tripId}
+              legsFromThisStop={legsForStop(stop.id)}
+              dayStops={stops}
+              dayDate={day.date}
+              canMoveUp={i > 0}
+              canMoveDown={i < stops.length - 1}
+              onMoveUp={() => StopRepository.reorder(day.id, swapStops(i, i - 1))}
+              onMoveDown={() => StopRepository.reorder(day.id, swapStops(i, i + 1))}
+            />
           ))}
 
           <IonButton fill="clear" size="small" style={{ marginLeft: '0.5rem' }} onClick={() => setShowStopForm(true)}>
@@ -100,7 +150,7 @@ const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
       )}
 
       <StopFormModal isOpen={showStopForm} onDismiss={() => setShowStopForm(false)} tripId={tripId} dayId={day.id} />
-      <AccommodationFormModal isOpen={showAccomForm} onDismiss={() => setShowAccomForm(false)} tripId={tripId} />
+      <AccommodationFormModal isOpen={showAccomForm} onDismiss={() => setShowAccomForm(false)} tripId={tripId} initialDate={day.date} />
     </div>
   )
 }

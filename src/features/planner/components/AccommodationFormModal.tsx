@@ -16,9 +16,10 @@ interface Props {
   onDismiss: () => void
   tripId: string
   accommodation?: Accommodation
+  initialDate?: string
 }
 
-const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, accommodation }) => {
+const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, accommodation, initialDate }) => {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<Accommodation['status']>('not_booked')
   const [checkIn, setCheckIn] = useState('')
@@ -35,9 +36,15 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       setLink(accommodation.link ?? '')
       setConfirmationLink(accommodation.confirmationLink ?? '')
     } else {
-      setName(''); setStatus('not_booked'); setCheckIn(''); setCheckOut(''); setLink(''); setConfirmationLink('')
+      setName(''); setStatus('not_booked')
+      setCheckIn(initialDate ?? '')
+      const nextDay = initialDate
+        ? new Date(new Date(initialDate + 'T00:00:00Z').getTime() + 86400000).toISOString().slice(0, 10)
+        : ''
+      setCheckOut(nextDay)
+      setLink(''); setConfirmationLink('')
     }
-  }, [accommodation, isOpen])
+  }, [accommodation, isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     if (!name.trim() || !checkIn || !checkOut) return

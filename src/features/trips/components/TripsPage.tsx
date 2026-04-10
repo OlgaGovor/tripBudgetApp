@@ -8,10 +8,12 @@ import { useHistory } from 'react-router-dom'
 import { useTrips } from '../hooks/useTrips'
 import TripCard from './TripCard'
 import TripFormModal from './TripFormModal'
+import type { Trip } from '../../../db/schema'
 
 const TripsPage: React.FC = () => {
   const { trips } = useTrips()
   const [showForm, setShowForm] = useState(false)
+  const [editingTrip, setEditingTrip] = useState<Trip | undefined>()
   const history = useHistory()
 
   return (
@@ -38,6 +40,7 @@ const TripsPage: React.FC = () => {
             key={trip.id}
             trip={trip}
             onClick={() => history.push(`/trips/${trip.id}/plan`)}
+            onEdit={() => setEditingTrip(trip)}
           />
         ))}
       </IonContent>
@@ -49,6 +52,9 @@ const TripsPage: React.FC = () => {
       </IonFab>
 
       <TripFormModal isOpen={showForm} onDismiss={() => setShowForm(false)} />
+      {editingTrip && (
+        <TripFormModal isOpen onDismiss={() => setEditingTrip(undefined)} trip={editingTrip} />
+      )}
     </IonPage>
   )
 }

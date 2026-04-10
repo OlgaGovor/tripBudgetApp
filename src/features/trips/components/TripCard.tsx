@@ -1,8 +1,11 @@
+import { IonButton, IonIcon } from '@ionic/react'
+import { pencilOutline } from 'ionicons/icons'
 import type { Trip } from '../../../db/schema'
 
 interface Props {
   trip: Trip
   onClick: () => void
+  onEdit?: () => void
 }
 
 function formatDateRange(start: string, end: string): string {
@@ -12,7 +15,7 @@ function formatDateRange(start: string, end: string): string {
   return `${fmt(start)} – ${fmt(end)} · ${days}d`
 }
 
-const TripCard: React.FC<Props> = ({ trip, onClick }) => (
+const TripCard: React.FC<Props> = ({ trip, onClick, onEdit }) => (
   <div
     onClick={onClick}
     style={{
@@ -21,8 +24,19 @@ const TripCard: React.FC<Props> = ({ trip, onClick }) => (
       padding: '1rem',
       margin: '0.75rem 1rem',
       cursor: 'pointer',
+      position: 'relative',
     }}
   >
+    {onEdit && (
+      <IonButton
+        fill="clear"
+        size="small"
+        onClick={e => { e.stopPropagation(); onEdit() }}
+        style={{ position: 'absolute', top: 4, right: 4 }}
+      >
+        <IonIcon icon={pencilOutline} />
+      </IonButton>
+    )}
     <div style={{ fontSize: '2rem' }}>{trip.emoji}</div>
     <h2 style={{ margin: '0.25rem 0 0', fontSize: '1.1rem', fontWeight: 600 }}>{trip.name}</h2>
     <p style={{ margin: '0.15rem 0 0', fontSize: '0.85rem', opacity: 0.7 }}>{trip.destination}</p>

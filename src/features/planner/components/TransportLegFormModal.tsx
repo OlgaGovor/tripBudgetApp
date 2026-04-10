@@ -5,7 +5,7 @@ import {
 } from '@ionic/react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
-import type { TransportLeg } from '../../../db/schema'
+import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
 
@@ -25,9 +25,11 @@ interface Props {
   tripId: string
   fromStopId: string
   leg?: TransportLeg
+  otherStops?: Stop[]
+  initialDate?: string
 }
 
-const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg }) => {
+const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg, otherStops, initialDate }) => {
   const [method, setMethod] = useState<TransportLeg['method']>('train')
   const [status, setStatus] = useState<TransportLeg['status']>('not_booked')
   const [departureDateTime, setDepartureDateTime] = useState('')
@@ -39,7 +41,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
   const [notes, setNotes] = useState('')
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
 
-  const toStop = useLiveQuery(
+  const toStop = useLiveQuery<Stop | undefined>(
     () => leg?.toStopId ? db.stops.get(leg.toStopId) : Promise.resolve(undefined),
     [leg?.toStopId]
   )
@@ -50,7 +52,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     if (!isOpen) return
     setMethod(leg?.method ?? 'train')
     setStatus(leg?.status ?? 'not_booked')
-    setDepartureDateTime(leg?.departureDateTime ?? '')
+    setDepartureDateTime(leg?.departureDateTime ?? (initialDate ? `${initialDate}T12:00` : ''))
     setArrivalDateTime(leg?.arrivalDateTime ?? '')
     setDestinationName(toStop?.placeName ?? '')
     setDestinationLat(toStop?.lat)
@@ -125,6 +127,27 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
               <p>{destinationName || 'Search or enter destination...'}</p>
             </IonLabel>
           </IonItem>
+          {!leg && otherStops && otherStops.length > 0 && (
+            <div style={{ padding: '0.5rem 1rem 0' }}>
+              <p style={{ margin: '0 0 0.4rem', fontSize: '0.78rem', color: 'var(--ion-color-medium)' }}>Quick-select stop:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {otherStops.map(s => (
+                  <div
+                    key={s.id}
+                    onClick={() => { setDestinationName(s.placeName); setDestinationLat(s.lat); setDestinationLng(s.lng) }}
+                    style={{
+                      padding: '4px 10px', borderRadius: 16,
+                      background: destinationName === s.placeName ? 'var(--ion-color-primary)' : 'var(--ion-color-light)',
+                      color: destinationName === s.placeName ? '#fff' : 'inherit',
+                      cursor: 'pointer', fontSize: '0.85rem',
+                    }}
+                  >
+                    {s.placeName}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <IonItem>
             <IonLabel position="stacked">Booking link</IonLabel>
             <IonInput value={bookingLink} onIonInput={e => setBookingLink(e.detail.value ?? '')} placeholder="https://..." />
