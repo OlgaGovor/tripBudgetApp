@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getDailyBudgetStatus, getTotalBudgetStatus } from '../budget'
+import { getDailyBudgetStatus, getTotalBudgetStatus, STATUS_COLORS } from '../budget'
 
 describe('getDailyBudgetStatus', () => {
   it('returns under when spent < 95% of cumulative budget', () => {
@@ -29,5 +29,15 @@ describe('getTotalBudgetStatus', () => {
 
   it('returns over when pace exceeded', () => {
     expect(getTotalBudgetStatus(310, 1000, 3, 10)).toBe('over')
+  })
+})
+
+describe('STATUS_COLORS', () => {
+  it('covers all statuses with correct hex values', () => {
+    expect(STATUS_COLORS).toMatchObject({
+      under: '#27ae60',
+      warning: '#f39c12',
+      over: '#e74c3c',
+    })
   })
 })
