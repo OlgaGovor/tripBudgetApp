@@ -11,6 +11,7 @@ const LINE_COLOR: Record<string, string> = {
 }
 
 interface RouteSegment {
+  legId: string
   points: [number, number][]
   status: TransportLeg['status']
   dashed: boolean
@@ -49,7 +50,7 @@ const MapPage: React.FC = () => {
           points = [[fromCoord.lat, fromCoord.lng], [toCoord.lat, toCoord.lng]]
           dashed = true
         }
-        segments.push({ points, status: leg.status, dashed })
+        segments.push({ legId: leg.id, points, status: leg.status, dashed })
       }
       setRoutes(segments)
     }
@@ -75,9 +76,9 @@ const MapPage: React.FC = () => {
                 <Popup>{stop.placeName}</Popup>
               </Marker>
             ))}
-            {routes.map((route, i) => (
+            {routes.map(route => (
               <Polyline
-                key={i}
+                key={route.legId}
                 positions={route.points}
                 color={LINE_COLOR[route.status]}
                 dashArray={route.dashed ? '6 6' : undefined}

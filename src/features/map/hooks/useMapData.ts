@@ -2,23 +2,16 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../../db/db'
 
 export function useMapData(tripId: string) {
-  const stopsWithCoords = useLiveQuery(async () => {
+  const allStops = useLiveQuery(async () => {
     const days = await db.days.where('tripId').equals(tripId).toArray()
     const dayIds = days.map(d => d.id)
-    const stops = dayIds.length
+    return dayIds.length
       ? await db.stops.where('dayId').anyOf(dayIds).toArray()
       : []
-    return stops.filter(s => s.lat !== undefined && s.lng !== undefined)
   }, [tripId]) ?? []
 
-  const unpinnedStops = useLiveQuery(async () => {
-    const days = await db.days.where('tripId').equals(tripId).toArray()
-    const dayIds = days.map(d => d.id)
-    const stops = dayIds.length
-      ? await db.stops.where('dayId').anyOf(dayIds).toArray()
-      : []
-    return stops.filter(s => s.lat === undefined)
-  }, [tripId]) ?? []
+  const stopsWithCoords = allStops.filter(s => s.lat !== undefined && s.lng !== undefined)
+  const unpinnedStops = allStops.filter(s => s.lat === undefined)
 
   const legs = useLiveQuery(
     () => db.transportLegs.where('tripId').equals(tripId).toArray(),
