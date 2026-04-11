@@ -64,42 +64,46 @@ const MapPage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader><IonToolbar><IonTitle>Map</IonTitle></IonToolbar></IonHeader>
-      <IonContent>
-        <div style={{ height: unpinnedStops.length ? 'calc(100% - 120px)' : '100%' }}>
-          <MapContainer center={center} zoom={stopsWithCoords.length ? 6 : 2} style={{ height: '100%', width: '100%' }}>
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            />
-            {stopsWithCoords.map(stop => (
-              <Marker key={stop.id} position={[stop.lat!, stop.lng!]}>
-                <Popup>{stop.placeName}</Popup>
-              </Marker>
-            ))}
-            {routes.map(route => (
-              <Polyline
-                key={route.legId}
-                positions={route.points}
-                color={LINE_COLOR[route.status]}
-                dashArray={route.dashed ? '6 6' : undefined}
-                weight={2.5}
-                opacity={route.status === 'not_booked' ? 0.5 : 1}
+      <IonContent scrollY={false}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <MapContainer center={center} zoom={stopsWithCoords.length ? 6 : 2} style={{ height: '100%', width: '100%' }}>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
-            ))}
-          </MapContainer>
+              {stopsWithCoords.map(stop => (
+                <Marker key={stop.id} position={[stop.lat!, stop.lng!]}>
+                  <Popup>{stop.placeName}</Popup>
+                </Marker>
+              ))}
+              {routes.map(route => (
+                <Polyline
+                  key={route.legId}
+                  positions={route.points}
+                  color={LINE_COLOR[route.status]}
+                  dashArray={route.dashed ? '6 6' : undefined}
+                  weight={2.5}
+                  opacity={route.status === 'not_booked' ? 0.5 : 1}
+                />
+              ))}
+            </MapContainer>
+          </div>
+          {unpinnedStops.length > 0 && (
+            <div style={{ maxHeight: 120, overflowY: 'auto', borderTop: '1px solid var(--ion-color-light-shade)', flexShrink: 0 }}>
+              <IonList>
+                <IonItem>
+                  <IonLabel><h3 style={{ fontSize: '0.85rem', color: 'var(--ion-color-medium)' }}>Not pinned on map</h3></IonLabel>
+                </IonItem>
+                {unpinnedStops.map(s => (
+                  <IonItem key={s.id}>
+                    <IonLabel>📍 {s.placeName}</IonLabel>
+                  </IonItem>
+                ))}
+              </IonList>
+            </div>
+          )}
         </div>
-        {unpinnedStops.length > 0 && (
-          <IonList style={{ borderTop: '1px solid var(--ion-color-light-shade)' }}>
-            <IonItem>
-              <IonLabel><h3 style={{ fontSize: '0.85rem', color: 'var(--ion-color-medium)' }}>Not pinned on map</h3></IonLabel>
-            </IonItem>
-            {unpinnedStops.map(s => (
-              <IonItem key={s.id}>
-                <IonLabel>📍 {s.placeName}</IonLabel>
-              </IonItem>
-            ))}
-          </IonList>
-        )}
       </IonContent>
     </IonPage>
   )
