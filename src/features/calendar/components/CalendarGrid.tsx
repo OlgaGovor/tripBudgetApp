@@ -43,10 +43,11 @@ const CalendarGrid: React.FC<Props> = ({
 
   const dayByDate = useMemo(() => new Map(days.map(d => [d.date, d])), [days])
   const accomByDayId = useMemo(() => {
+    const accomById = new Map(accommodations.map(a => [a.id, a]))
     const m = new Map<string, Accommodation>()
     days.forEach(d => {
       if (d.accommodationId) {
-        const a = accommodations.find(a => a.id === d.accommodationId)
+        const a = accomById.get(d.accommodationId)
         if (a) m.set(d.id, a)
       }
     })

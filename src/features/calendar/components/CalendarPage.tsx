@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonButtons, IonIcon,
@@ -35,7 +35,7 @@ const CalendarPage: React.FC = () => {
   }, [filter, today])
 
   const [stopNamesByDayId, setStopNamesByDayId] = useState<Record<string, string>>({})
-  useMemo(() => {
+  useEffect(() => {
     Promise.all(
       days.map(async d => {
         const stops = await StopRepository.getByDayId(d.id)
