@@ -5,9 +5,7 @@ import PlannerPage from '../features/planner/components/PlannerPage'
 import CalendarPage from '../features/calendar/components/CalendarPage'
 import ExpensesPage from '../features/expenses/components/ExpensesPage'
 import PackingPage from '../features/packing/components/PackingPage'
-
-// Placeholders for tabs built in Plan 2
-const MapPage: React.FC = () => <div>Map</div>
+import MapPage from '../features/map/components/MapPage'
 
 const TripShell: React.FC = () => {
   const { url, path, params } = useRouteMatch<{ tripId: string }>()
