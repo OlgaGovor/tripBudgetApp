@@ -2,9 +2,9 @@ import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } 
 import { calendarOutline, cashOutline, mapOutline, bagHandleOutline, listOutline } from 'ionicons/icons'
 import { Redirect, Route, useRouteMatch } from 'react-router-dom'
 import PlannerPage from '../features/planner/components/PlannerPage'
+import CalendarPage from '../features/calendar/components/CalendarPage'
 
 // Placeholders for tabs built in Plan 2
-const CalendarPage: React.FC = () => <div>Calendar</div>
 const ExpensesPage: React.FC = () => <div>Expenses</div>
 const MapPage: React.FC = () => <div>Map</div>
 const PackingPage: React.FC = () => <div>Packing</div>
