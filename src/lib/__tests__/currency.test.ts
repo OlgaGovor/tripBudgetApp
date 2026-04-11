@@ -25,7 +25,10 @@ describe('getExchangeRates', () => {
   it('fetches and caches rates when no cache exists', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ base: 'EUR', rates: { USD: 1.08, PLN: 4.25 } }),
+      json: async () => ([
+        { base: 'EUR', quote: 'USD', rate: 1.08, date: '2026-04-10' },
+        { base: 'EUR', quote: 'PLN', rate: 4.25, date: '2026-04-10' },
+      ]),
     }))
     const { rates, stale } = await getExchangeRates()
     expect(rates['USD']).toBe(1.08)
