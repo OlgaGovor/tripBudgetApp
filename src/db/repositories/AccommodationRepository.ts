@@ -3,7 +3,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from '../db'
 import type { Accommodation } from '../schema'
 
-async function createStopsForAccommodation(
+/** Upsert accommodation stops: update in place if already exists, create if missing,
+ *  delete stops for days no longer in the date range. Never duplicates.
+ *  selectedStopId: if the user picked an existing stop, adopt it instead of creating a new one. */
+async function syncStopsForAccommodation(
   tripId: string,
   accommodationId: string,
   name: string,
@@ -13,18 +16,48 @@ async function createStopsForAccommodation(
   placeName?: string,
   lat?: number,
   lng?: number,
+  selectedStopId?: string,
 ): Promise<void> {
-  const dates = new Set(occupiedDates(checkIn, checkOut))
-  const days = await db.days.where('tripId').equals(tripId).filter(d => dates.has(d.date)).toArray()
+  const newDates = new Set(occupiedDates(checkIn, checkOut))
+  const existingStops = await db.stops.where('accommodationId').equals(accommodationId).toArray()
+
+  // Fetch days for existing stops to check which are no longer in the date range
+  const existingDayIds = [...new Set(existingStops.map(s => s.dayId))]
+  const existingDays = await Promise.all(existingDayIds.map(id => db.days.get(id)))
+  const dayDateById = new Map(existingDays.filter(Boolean).map(d => [d!.id, d!.date]))
+
+  await Promise.all(existingStops.map(async s => {
+    const date = dayDateById.get(s.dayId)
+    if (date && !newDates.has(date)) {
+      await db.stops.delete(s.id)
+    }
+  }))
+
+  // Re-read after deletes to know which stops still exist
+  const remainingStops = await db.stops.where('accommodationId').equals(accommodationId).toArray()
+  const remainingByDayId = new Map(remainingStops.map(s => [s.dayId, s]))
+
+  // Pre-fetch selected stop once (if user picked an existing stop from the day's chip list)
+  const selectedStop = selectedStopId ? await db.stops.get(selectedStopId) : undefined
+
+  // Upsert for each day in the new range
+  const days = await db.days.where('tripId').equals(tripId).filter(d => newDates.has(d.date)).toArray()
   await Promise.all(days.map(async d => {
-    const alreadyExists = await db.stops.where('accommodationId').equals(accommodationId)
-      .filter(s => s.dayId === d.id).first()
-    if (alreadyExists) return
-    const dayStops = await db.stops.where('dayId').equals(d.id).toArray()
-    await db.stops.add({
-      id: uuidv4(), dayId: d.id, order: dayStops.length,
-      placeName: placeName ?? name, placeLink: link, lat, lng, accommodationId, usefulLinks: [],
-    })
+    const stopData = { placeName: placeName ?? name, placeLink: link, lat, lng }
+    const existing = remainingByDayId.get(d.id)
+    if (existing) {
+      // Already linked to this accommodation — update in place
+      await db.stops.update(existing.id, stopData)
+    } else if (selectedStop && selectedStop.dayId === d.id && !selectedStop.accommodationId) {
+      // User picked an existing stop on this day — adopt it instead of creating a duplicate
+      await db.stops.update(selectedStop.id, { ...stopData, accommodationId })
+    } else {
+      const dayStops = await db.stops.where('dayId').equals(d.id).toArray()
+      await db.stops.add({
+        id: uuidv4(), dayId: d.id, order: dayStops.length,
+        ...stopData, accommodationId, usefulLinks: [],
+      })
+    }
   }))
 }
 
@@ -68,27 +101,34 @@ export const AccommodationRepository = {
     )
   },
 
-  async create(input: AccommodationInput): Promise<string> {
+  async create(input: AccommodationInput, selectedStopId?: string): Promise<string> {
     const id = uuidv4()
     await db.accommodations.add({ ...input, id })
     await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
-    await createStopsForAccommodation(input.tripId, id, input.name, input.link, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng)
+    await syncStopsForAccommodation(input.tripId, id, input.name, input.link, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId)
     return id
   },
 
-  async update(id: string, updates: Partial<Omit<Accommodation, 'id' | 'tripId'>>): Promise<void> {
+  async update(id: string, updates: Partial<Omit<Accommodation, 'id' | 'tripId'>>, selectedStopId?: string): Promise<void> {
     const existing = await db.accommodations.get(id)
     if (!existing) throw new Error(`Accommodation ${id} not found`)
-    const datesChanged = updates.checkIn !== undefined || updates.checkOut !== undefined
-    const stopsAffected = datesChanged || updates.name !== undefined || updates.link !== undefined
-      || updates.placeName !== undefined || updates.lat !== undefined || updates.lng !== undefined
+    const datesChanged = (updates.checkIn !== undefined && updates.checkIn !== existing.checkIn)
+      || (updates.checkOut !== undefined && updates.checkOut !== existing.checkOut)
+    const stopsAffected = datesChanged
+      || (updates.name !== undefined && updates.name !== existing.name)
+      || ('link' in updates && updates.link !== existing.link)
+      || ('placeName' in updates && updates.placeName !== existing.placeName)
+      || ('lat' in updates && updates.lat !== existing.lat)
+      || ('lng' in updates && updates.lng !== existing.lng)
     if (datesChanged) await unassignFromDays(existing.tripId, id)
-    if (stopsAffected) await deleteStopsForAccommodation(id)
     await db.accommodations.update(id, updates)
-    if (datesChanged || stopsAffected) {
+    if (datesChanged) {
       const updated = (await db.accommodations.get(id))!
-      if (datesChanged) await assignToDays(existing.tripId, id, updated.checkIn, updated.checkOut)
-      if (stopsAffected) await createStopsForAccommodation(existing.tripId, id, updated.name, updated.link, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng)
+      await assignToDays(existing.tripId, id, updated.checkIn, updated.checkOut)
+    }
+    if (stopsAffected) {
+      const updated = (await db.accommodations.get(id))!
+      await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.link, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId)
     }
   },
 

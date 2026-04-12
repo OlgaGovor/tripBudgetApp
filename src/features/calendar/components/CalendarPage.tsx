@@ -3,7 +3,7 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonButtons, IonIcon,
 } from '@ionic/react'
-import { chevronBackOutline, chevronForwardOutline, homeOutline } from 'ionicons/icons'
+import { homeOutline } from 'ionicons/icons'
 import { useParams, useHistory } from 'react-router-dom'
 import { useDays } from '../../planner/hooks/useDays'
 import { useTransportLegs } from '../../planner/hooks/useTransportLegs'
@@ -13,7 +13,19 @@ import { TripRepository } from '../../../db/repositories/TripRepository'
 import CalendarGrid from './CalendarGrid'
 import type { BudgetStatus } from '../../../lib/budget'
 
-type FilterMode = 'next10' | 'next20' | 'next30' | 'all'
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
+function monthsBetween(startDate: string, endDate: string): Array<{ year: number; month: number }> {
+  const result: Array<{ year: number; month: number }> = []
+  const start = new Date(startDate + 'T00:00:00Z')
+  const end = new Date(endDate + 'T00:00:00Z')
+  let cur = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1))
+  while (cur <= end) {
+    result.push({ year: cur.getUTCFullYear(), month: cur.getUTCMonth() })
+    cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth() + 1, 1))
+  }
+  return result
+}
 
 const CalendarPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
@@ -24,28 +36,6 @@ const CalendarPage: React.FC = () => {
   const history = useHistory()
 
   const today = new Date().toISOString().slice(0, 10)
-  const [viewYear, setViewYear] = useState(() => new Date().getUTCFullYear())
-  const [viewMonth, setViewMonth] = useState(() => new Date().getUTCMonth())
-
-  const initialized = useRef(false)
-  useEffect(() => {
-    if (!trip || initialized.current) return
-    initialized.current = true
-    // Ongoing trip: open on today's month; not-yet-started or past: open on start date month
-    const targetDate = (today >= trip.startDate && today <= trip.endDate) ? today : trip.startDate
-    const d = new Date(targetDate + 'T00:00:00Z')
-    setViewYear(d.getUTCFullYear())
-    setViewMonth(d.getUTCMonth())
-  }, [trip]) // eslint-disable-line react-hooks/exhaustive-deps
-  const [filter, setFilter] = useState<FilterMode>('all')
-
-  const highlightRange = useMemo((): { from: string; to: string } | undefined => {
-    if (filter === 'all') return undefined
-    const n = filter === 'next10' ? 10 : filter === 'next20' ? 20 : 30
-    const end = new Date(today + 'T00:00:00Z')
-    end.setUTCDate(end.getUTCDate() + n - 1)
-    return { from: today, to: end.toISOString().slice(0, 10) }
-  }, [filter, today])
 
   const [stopNamesByDayId, setStopNamesByDayId] = useState<Record<string, string>>({})
   useEffect(() => {
@@ -57,18 +47,25 @@ const CalendarPage: React.FC = () => {
     ).then(pairs => setStopNamesByDayId(Object.fromEntries(pairs)))
   }, [days])
 
+  const months = useMemo(
+    () => trip ? monthsBetween(trip.startDate, trip.endDate) : [],
+    [trip]
+  )
+
+  // Scroll to the right month once months are available
+  const monthRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const scrolled = useRef(false)
+  useEffect(() => {
+    if (!trip || scrolled.current || months.length === 0) return
+    scrolled.current = true
+    const targetDate = (today >= trip.startDate && today <= trip.endDate) ? today : trip.startDate
+    const key = targetDate.slice(0, 7)
+    requestAnimationFrame(() => {
+      monthRefs.current[key]?.scrollIntoView({ behavior: 'instant' })
+    })
+  }, [months]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const budgetStatusByDate: Record<string, BudgetStatus> = {}
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
-    else setViewMonth(m => m - 1)
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) }
-    else setViewMonth(m => m + 1)
-  }
-
-  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
   return (
     <IonPage>
@@ -76,52 +73,32 @@ const CalendarPage: React.FC = () => {
         <IonToolbar>
           <IonButtons slot="start">
             <IonButton onClick={() => history.push('/')}><IonIcon icon={homeOutline} /></IonButton>
-            <IonButton onClick={prevMonth}><IonIcon icon={chevronBackOutline} /></IonButton>
           </IonButtons>
-          <IonTitle>{MONTH_NAMES[viewMonth]} {viewYear}</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={nextMonth}><IonIcon icon={chevronForwardOutline} /></IonButton>
-          </IonButtons>
-        </IonToolbar>
-        <IonToolbar>
-          <div style={{ display: 'flex', gap: 4, padding: '0 1rem', overflowX: 'auto' }}>
-            {(['next10','next20','next30','all'] as FilterMode[]).map(f => (
-              <IonButton
-                key={f}
-                fill={filter === f ? 'solid' : 'outline'}
-                size="small"
-                onClick={() => setFilter(f)}
-              >
-                {f === 'all' ? 'Whole trip' : `Next ${f.replace('next', '')}`}
-              </IonButton>
-            ))}
-            <IonButton size="small" fill="clear" onClick={() => { setViewYear(new Date().getUTCFullYear()); setViewMonth(new Date().getUTCMonth()) }}>
-              Today
-            </IonButton>
-            {days[0] && (
-              <IonButton size="small" fill="clear" onClick={() => {
-                const d = new Date(days[0].date + 'T00:00:00Z')
-                setViewYear(d.getUTCFullYear()); setViewMonth(d.getUTCMonth())
-              }}>
-                Trip start
-              </IonButton>
-            )}
-          </div>
+          <IonTitle>Calendar</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        <div style={{ padding: '0 4px' }}>
-          <CalendarGrid
-            year={viewYear}
-            month={viewMonth}
-            days={days}
-            accommodations={accommodations}
-            legs={legs}
-            stopNamesByDayId={stopNamesByDayId}
-            budgetStatusByDate={budgetStatusByDate}
-            highlightRange={highlightRange}
-            onDayClick={_date => history.push(`/trips/${tripId}/plan`)}
-          />
+        <div style={{ padding: '0 4px 2rem' }}>
+          {months.map(({ year, month }) => {
+            const key = `${year}-${String(month + 1).padStart(2, '0')}`
+            return (
+              <div key={key} ref={el => { monthRefs.current[key] = el }}>
+                <div style={{ padding: '1rem 0.5rem 0.25rem', fontWeight: 600, fontSize: '1rem' }}>
+                  {MONTH_NAMES[month]} {year}
+                </div>
+                <CalendarGrid
+                  year={year}
+                  month={month}
+                  days={days}
+                  accommodations={accommodations}
+                  legs={legs}
+                  stopNamesByDayId={stopNamesByDayId}
+                  budgetStatusByDate={budgetStatusByDate}
+                  onDayClick={_date => history.push(`/trips/${tripId}/plan`)}
+                />
+              </div>
+            )
+          })}
         </div>
       </IonContent>
     </IonPage>

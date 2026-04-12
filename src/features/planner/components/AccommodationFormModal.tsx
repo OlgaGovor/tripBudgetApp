@@ -80,9 +80,9 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       usefulLinks: [] as Accommodation['usefulLinks'],
     }
     if (accommodation) {
-      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, lat, lng })
+      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, lat, lng }, selectedStopId)
     } else {
-      await AccommodationRepository.create(data)
+      await AccommodationRepository.create(data, selectedStopId)
     }
     onDismiss()
   }

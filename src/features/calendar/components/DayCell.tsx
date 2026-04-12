@@ -8,6 +8,9 @@ const ACCOM_COLORS: Record<Accommodation['status'], string> = {
 const METHOD_ICONS: Record<string, string> = {
   car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
 }
+const TRANSPORT_STATUS_DOT: Record<TransportLeg['status'], string> = {
+  not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
+}
 
 interface Props {
   calendarDate: string
@@ -26,6 +29,7 @@ const DayCell: React.FC<Props> = ({
 }) => {
   const dateNum = parseInt(calendarDate.slice(8), 10)
   const isTrip = !!day
+  const isToday = calendarDate === new Date().toISOString().slice(0, 10)
   const hasGap = isTrip && !accommodation && !departingLegs.some(l => l.arrivalDateTime)
   const accomColor = accommodation ? ACCOM_COLORS[accommodation.status] : undefined
 
@@ -42,7 +46,14 @@ const DayCell: React.FC<Props> = ({
         borderRadius: 4,
       }}
     >
-      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{dateNum}</span>
+      <span style={{
+        fontSize: '0.75rem', fontWeight: 600,
+        ...(isToday && {
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 18, height: 18, borderRadius: '50%',
+          background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.65rem',
+        }),
+      }}>{dateNum}</span>
       {day && (
         <>
           <div style={{ fontSize: '0.6rem', color: 'var(--ion-color-medium)' }}>Day {day.dayNumber}</div>
@@ -54,9 +65,16 @@ const DayCell: React.FC<Props> = ({
           {accomColor && (
             <div style={{ height: 3, background: accomColor, borderRadius: 2, marginTop: 2 }} />
           )}
-          <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', marginTop: 1 }}>
+          <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 1 }}>
             {departingLegs.map((l, i) => (
-              <span key={i} style={{ fontSize: '0.55rem' }}>{METHOD_ICONS[l.method] ?? '🚐'}</span>
+              <span key={i} style={{ position: 'relative', display: 'inline-block', fontSize: '0.55rem' }}>
+                {METHOD_ICONS[l.method] ?? '🚐'}
+                <span style={{
+                  position: 'absolute', bottom: 0, right: -1,
+                  width: 4, height: 4, borderRadius: '50%',
+                  background: TRANSPORT_STATUS_DOT[l.status],
+                }} />
+              </span>
             ))}
           </div>
           {budgetStatus && (
