@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
   IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
@@ -6,6 +7,7 @@ import {
 import { searchOutline } from 'ionicons/icons'
 import { AccommodationRepository } from '../../../db/repositories/AccommodationRepository'
 import type { Accommodation } from '../../../db/schema'
+import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
 
 const STATUSES: Accommodation['status'][] = ['not_booked', 'booked', 'booked_paid']
@@ -31,7 +33,15 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
   const [placeName, setPlaceName] = useState('')
   const [lat, setLat] = useState<number | undefined>()
   const [lng, setLng] = useState<number | undefined>()
+  const [selectedStopId, setSelectedStopId] = useState<string | undefined>()
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
+
+  const dayStops = useLiveQuery(async () => {
+    if (!checkIn || !tripId) return []
+    const day = await db.days.where('tripId').equals(tripId).filter(d => d.date === checkIn).first()
+    if (!day) return []
+    return db.stops.where('dayId').equals(day.id).sortBy('order')
+  }, [tripId, checkIn]) ?? []
 
   useEffect(() => {
     if (accommodation) {
@@ -44,6 +54,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       setPlaceName(accommodation.placeName ?? '')
       setLat(accommodation.lat)
       setLng(accommodation.lng)
+      setSelectedStopId(undefined)
     } else {
       setName(''); setStatus('not_booked')
       setCheckIn(initialDate ?? '')
@@ -52,12 +63,14 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
         : ''
       setCheckOut(nextDay)
       setLink(''); setNotes('')
-      setPlaceName(''); setLat(undefined); setLng(undefined)
+      setPlaceName(''); setLat(undefined); setLng(undefined); setSelectedStopId(undefined)
     }
   }, [accommodation, isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const dateValid = !checkIn || !checkOut || checkOut > checkIn
+
   async function handleSave() {
-    if (!name.trim() || !checkIn || !checkOut) return
+    if (!name.trim() || !checkIn || !checkOut || !dateValid) return
     const data = {
       tripId, name, status, checkIn, checkOut,
       link: link || undefined,
@@ -82,7 +95,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
           <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
           <IonTitle>{accommodation ? 'Edit Accommodation' : 'Add Accommodation'}</IonTitle>
           <IonButtons slot="end">
-            <IonButton strong onClick={handleSave} disabled={!name.trim() || !checkIn || !checkOut}>Save</IonButton>
+            <IonButton strong onClick={handleSave} disabled={!name.trim() || !checkIn || !checkOut || !dateValid}>Save</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -107,6 +120,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
               <IonLabel position="stacked">Check-out * (exclusive)</IonLabel>
               <IonInput type="date" value={checkOut} onIonInput={e => setCheckOut(e.detail.value ?? '')} />
             </IonItem>
+            {!dateValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>Check-out must be after check-in</p>}
             <IonItem>
               <IonLabel position="stacked">Link</IonLabel>
               <IonInput value={link} onIonInput={e => setLink(e.detail.value ?? '')} placeholder="https://..." />
@@ -114,10 +128,24 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
             <IonItem>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
                 <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500, color: 'var(--ion-color-medium)' }}>Place</span>
-                <div style={{ flex: 1 }}>
-                  {placeName && (
+                <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
+                  {dayStops.map(stop => (
+                    <div
+                      key={stop.id}
+                      onClick={() => { setPlaceName(stop.placeName); setLat(stop.lat); setLng(stop.lng); setSelectedStopId(stop.id) }}
+                      style={{
+                        flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
+                        background: selectedStopId === stop.id ? 'var(--ion-color-primary)' : 'var(--ion-color-light-shade)',
+                        color: selectedStopId === stop.id ? '#fff' : 'inherit',
+                        cursor: 'pointer', fontSize: '0.82rem',
+                      }}
+                    >
+                      {stop.placeName}
+                    </div>
+                  ))}
+                  {!selectedStopId && placeName && (
                     <div style={{
-                      display: 'inline-block', padding: '3px 8px', borderRadius: 10,
+                      flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
                       background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',
                     }}>
                       {placeName}
@@ -148,7 +176,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
     <PlaceSearchModal
       isOpen={showPlaceSearch}
       onDismiss={() => setShowPlaceSearch(false)}
-      onSelect={r => { setPlaceName(r.name); setLat(r.lat); setLng(r.lng) }}
+      onSelect={r => { setPlaceName(r.name); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
       title="Search place"
     />
     </>

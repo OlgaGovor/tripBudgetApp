@@ -64,8 +64,10 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     setNotes(leg?.notes ?? '')
   }, [isOpen, leg?.id, toStop]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const timeValid = !departureDateTime || !arrivalDateTime || arrivalDateTime >= departureDateTime
+
   async function handleSave() {
-    if (!destinationName.trim()) return
+    if (!destinationName.trim() || !timeValid) return
     if (leg) {
       await TransportLegRepository.update({
         id: leg.id,
@@ -101,7 +103,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
             <IonTitle>{leg ? 'Edit Transport' : 'Add Transport'}</IonTitle>
             <IonButtons slot="end">
-              <IonButton strong onClick={handleSave} disabled={!destinationName.trim()}>Save</IonButton>
+              <IonButton strong onClick={handleSave} disabled={!destinationName.trim() || !timeValid}>Save</IonButton>
             </IonButtons>
           </IonToolbar>
         </IonHeader>
@@ -126,6 +128,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             <IonLabel position="stacked">Arrival date & time</IonLabel>
             <IonInput type="datetime-local" value={arrivalDateTime} onIonInput={e => setArrivalDateTime(e.detail.value ?? '')} />
           </IonItem>
+          {!timeValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>Arrival must be at or after departure</p>}
           <IonItem>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
               <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500 }}>Destination *</span>

@@ -35,8 +35,10 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
     setCurrency(trip?.defaultCurrency ?? 'EUR')
   }, [trip?.id])
 
+  const dateValid = !startDate || !endDate || endDate >= startDate
+
   async function handleSave() {
-    if (!name.trim() || !startDate || !endDate) return
+    if (!name.trim() || !startDate || !endDate || !dateValid) return
     if (trip) {
       await TripRepository.update({ id: trip.id, name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency })
     } else {
@@ -54,7 +56,7 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
           </IonButtons>
           <IonTitle>{trip ? 'Edit Trip' : 'New Trip'}</IonTitle>
           <IonButtons slot="end">
-            <IonButton strong onClick={handleSave} disabled={!name.trim() || !startDate || !endDate}>
+            <IonButton strong onClick={handleSave} disabled={!name.trim() || !startDate || !endDate || !dateValid}>
               Save
             </IonButton>
           </IonButtons>
@@ -82,6 +84,7 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
           <IonLabel position="stacked">End date *</IonLabel>
           <IonInput type="date" value={endDate} onIonInput={e => setEndDate(e.detail.value ?? '')} />
         </IonItem>
+        {!dateValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>End date must be on or after start date</p>}
         <IonItem>
           <IonLabel position="stacked">Default currency</IonLabel>
           <IonSelect value={currency} onIonChange={e => setCurrency(e.detail.value)}>
