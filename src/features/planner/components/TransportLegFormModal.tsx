@@ -9,6 +9,7 @@ import { TransportLegRepository } from '../../../db/repositories/TransportLegRep
 import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
+import CurrencySelectModal from './CurrencySelectModal'
 
 const METHODS: TransportLeg['method'][] = ['car', 'bus', 'train', 'plane', 'walk', 'boat', 'ferry']
 const METHOD_LABELS: Record<TransportLeg['method'], string> = {
@@ -41,7 +42,12 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
   const [selectedToStopId, setSelectedToStopId] = useState<string | undefined>()
   const [bookingLink, setBookingLink] = useState('')
   const [notes, setNotes] = useState('')
+  const [price, setPrice] = useState('')
+  const [priceCurrency, setPriceCurrency] = useState('')
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
+  const [showCurrencySelect, setShowCurrencySelect] = useState(false)
+
+  const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
 
   const toStop = useLiveQuery<Stop | undefined>(
     () => leg?.toStopId ? db.stops.get(leg.toStopId) : Promise.resolve(undefined),
@@ -62,12 +68,15 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     setSelectedToStopId(undefined)
     setBookingLink(leg?.bookingLink ?? '')
     setNotes(leg?.notes ?? '')
-  }, [isOpen, leg?.id, toStop]) // eslint-disable-line react-hooks/exhaustive-deps
+    setPrice(leg?.price?.toString() ?? '')
+    setPriceCurrency(leg?.priceCurrency ?? (leg ? '' : (trip?.defaultCurrency ?? '')))
+  }, [isOpen, leg?.id, toStop, trip?.defaultCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const timeValid = !departureDateTime || !arrivalDateTime || arrivalDateTime >= departureDateTime
 
   async function handleSave() {
     if (!destinationName.trim() || !timeValid) return
+    const parsedPrice = price ? parseFloat(price) : undefined
     if (leg) {
       await TransportLegRepository.update({
         id: leg.id,
@@ -77,6 +86,8 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         destinationName,
         destinationLat,
         destinationLng,
+        price: parsedPrice,
+        priceCurrency: priceCurrency || undefined,
         bookingLink: bookingLink || undefined,
         notes: notes || undefined,
       })
@@ -88,6 +99,8 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         departureDateTime: departureDateTime || undefined,
         arrivalDateTime: arrivalDateTime || undefined,
         destinationName, destinationLat, destinationLng,
+        price: parsedPrice,
+        priceCurrency: priceCurrency || undefined,
         bookingLink: bookingLink || undefined,
         notes: notes || undefined,
       })
@@ -163,6 +176,25 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             </div>
           </IonItem>
           <IonItem>
+            <IonLabel position="stacked">Price</IonLabel>
+            <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
+              <IonInput
+                type="number" value={price} onIonInput={e => setPrice(e.detail.value ?? '')}
+                placeholder="0" style={{ flex: 1 }}
+              />
+              <div
+                onClick={() => setShowCurrencySelect(true)}
+                style={{
+                  flexShrink: 0, minWidth: 52, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                  background: 'var(--ion-color-light-shade)', textAlign: 'center',
+                  fontSize: '0.85rem', fontWeight: 600, color: priceCurrency ? 'inherit' : 'var(--ion-color-medium)',
+                }}
+              >
+                {priceCurrency || 'CCY'}
+              </div>
+            </div>
+          </IonItem>
+          <IonItem>
             <IonLabel position="stacked">Booking link</IonLabel>
             <IonInput value={bookingLink} onIonInput={e => setBookingLink(e.detail.value ?? '')} placeholder="https://..." />
           </IonItem>
@@ -178,6 +210,12 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         onDismiss={() => setShowPlaceSearch(false)}
         onSelect={r => { setDestinationName(r.name); setDestinationLat(r.lat); setDestinationLng(r.lng); setSelectedToStopId(undefined) }}
         title="Search destination"
+      />
+      <CurrencySelectModal
+        isOpen={showCurrencySelect}
+        onDismiss={() => setShowCurrencySelect(false)}
+        onSelect={code => setPriceCurrency(code)}
+        selectedCode={priceCurrency}
       />
     </>
   )

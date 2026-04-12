@@ -33,6 +33,9 @@ class TripBudgetDB extends Dexie {
     this.version(2).stores({
       stops: 'id, dayId, accommodationId',
     })
+    this.version(3).stores({
+      expenses: 'id, tripId, dayId, date, accommodationId, transportLegId',
+    })
   }
 }
 

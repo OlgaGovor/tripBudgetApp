@@ -48,6 +48,8 @@ export interface TransportLeg {
   departureDateTime?: string  // ISO datetime
   arrivalDateTime?: string    // ISO datetime
   // isOvernightTransport is COMPUTED, not stored — use isOvernight() helper
+  price?: number
+  priceCurrency?: string
   notes?: string
   bookingLink?: string
   usefulLinks: Link[]
@@ -64,6 +66,8 @@ export interface Accommodation {
   status: 'not_booked' | 'booked' | 'booked_paid'
   checkIn: string          // YYYY-MM-DD (inclusive)
   checkOut: string         // YYYY-MM-DD (exclusive — hotel-style)
+  price?: number
+  priceCurrency?: string
   notes?: string
   usefulLinks: Link[]
 }
@@ -86,6 +90,8 @@ export interface Expense {
   convertedAt: string
   note?: string
   date: string             // YYYY-MM-DD
+  accommodationId?: string
+  transportLegId?: string
 }
 
 export interface PackingItem {

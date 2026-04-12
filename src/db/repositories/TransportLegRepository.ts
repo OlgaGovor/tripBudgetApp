@@ -4,6 +4,34 @@ import { db } from '../db'
 import type { TransportLeg } from '../schema'
 import { DayRepository } from './DayRepository'
 import { StopRepository } from './StopRepository'
+import { ExpenseRepository } from './ExpenseRepository'
+
+const METHOD_EMOJIS: Record<TransportLeg['method'], string> = {
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+}
+
+async function syncExpenseForTransportLeg(legId: string): Promise<void> {
+  const leg = await db.transportLegs.get(legId)
+  if (!leg) return
+  const existing = await db.expenses.where('transportLegId').equals(legId).first()
+  if (!leg.price || !leg.priceCurrency) {
+    if (existing) await db.expenses.delete(existing.id)
+    return
+  }
+  const fromStop = await db.stops.get(leg.fromStopId)
+  const toStop = await db.stops.get(leg.toStopId)
+  const note = `${METHOD_EMOJIS[leg.method]} ${fromStop?.placeName ?? '?'} → ${toStop?.placeName ?? '?'}`
+  const date = leg.departureDateTime ? leg.departureDateTime.slice(0, 10) : new Date().toISOString().slice(0, 10)
+  if (existing) {
+    await ExpenseRepository.update(existing.id, { amount: leg.price, currency: leg.priceCurrency, note, date })
+  } else {
+    await ExpenseRepository.create({
+      tripId: leg.tripId, categoryId: 'cat-transport',
+      amount: leg.price, currency: leg.priceCurrency,
+      date, note, transportLegId: legId,
+    })
+  }
+}
 
 export function isOvernightTransport(leg: Pick<TransportLeg, 'departureDateTime' | 'arrivalDateTime'>): boolean {
   if (!leg.departureDateTime || !leg.arrivalDateTime) return false
@@ -21,6 +49,8 @@ type CreateInput = {
   destinationName: string
   destinationLat?: number
   destinationLng?: number
+  price?: number
+  priceCurrency?: string
   notes?: string
   bookingLink?: string
   usefulLinks?: TransportLeg['usefulLinks']
@@ -35,6 +65,8 @@ type UpdateInput = {
   destinationName?: string
   destinationLat?: number
   destinationLng?: number
+  price?: number
+  priceCurrency?: string
   notes?: string
   bookingLink?: string
   usefulLinks?: TransportLeg['usefulLinks']
@@ -67,7 +99,7 @@ export const TransportLegRepository = {
   },
 
   async create(input: CreateInput): Promise<string> {
-    const { tripId, fromStopId, toStopId: existingToStopId, destinationName, destinationLat, destinationLng, arrivalDateTime, ...rest } = input
+    const { tripId, fromStopId, toStopId: existingToStopId, destinationName, destinationLat, destinationLng, arrivalDateTime, price, priceCurrency, ...rest } = input
 
     let toStopId: string
     if (existingToStopId) {
@@ -95,13 +127,14 @@ export const TransportLegRepository = {
 
     const id = uuidv4()
     await db.transportLegs.add({
-      id, tripId, fromStopId, toStopId, arrivalDateTime, usefulLinks: [], ...rest,
+      id, tripId, fromStopId, toStopId, arrivalDateTime, price, priceCurrency, usefulLinks: [], ...rest,
     })
+    await syncExpenseForTransportLeg(id)
     return id
   },
 
   async update(input: UpdateInput): Promise<void> {
-    const { id, arrivalDateTime, destinationName, destinationLat, destinationLng, ...rest } = input
+    const { id, arrivalDateTime, destinationName, destinationLat, destinationLng, price, priceCurrency, ...rest } = input
     const leg = await db.transportLegs.get(id)
     if (!leg) throw new Error(`TransportLeg ${id} not found`)
 
@@ -116,12 +149,19 @@ export const TransportLegRepository = {
     await db.transportLegs.update(id, {
       ...rest,
       ...(arrivalDateTime !== undefined && { arrivalDateTime }),
+      price,
+      priceCurrency,
     })
+    await syncExpenseForTransportLeg(id)
   },
 
   async delete(id: string): Promise<void> {
     const leg = await db.transportLegs.get(id)
-    if (leg) await db.stops.delete(leg.toStopId)
+    if (leg) {
+      await db.stops.delete(leg.toStopId)
+      const expense = await db.expenses.where('transportLegId').equals(id).first()
+      if (expense) await db.expenses.delete(expense.id)
+    }
     await db.transportLegs.delete(id)
   },
 }

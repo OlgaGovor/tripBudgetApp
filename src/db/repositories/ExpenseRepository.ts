@@ -12,6 +12,8 @@ type CreateInput = {
   currency: string
   date: string
   note?: string
+  accommodationId?: string
+  transportLegId?: string
 }
 
 export const ExpenseRepository = {

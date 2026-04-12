@@ -23,7 +23,7 @@ const DAY: Day = {
 
 describe('DayCard', () => {
   it('renders day number and date', () => {
-    render(<DayCard day={DAY} tripId="trip1" />)
+    render(<DayCard day={DAY} tripId="trip1" legs={[]} accommodations={[]} />)
     expect(screen.getByText(/Day 3/)).toBeInTheDocument()
     expect(screen.getByText(/May 3/)).toBeInTheDocument()
   })

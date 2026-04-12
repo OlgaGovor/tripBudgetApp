@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '../db'
 import type { Accommodation } from '../schema'
+import { ExpenseRepository } from './ExpenseRepository'
 
 /** Upsert accommodation stops: update in place if already exists, create if missing,
  *  delete stops for days no longer in the date range. Never duplicates.
@@ -61,6 +62,32 @@ async function syncStopsForAccommodation(
   }))
 }
 
+async function syncExpenseForAccommodation(
+  accommodationId: string,
+  tripId: string,
+  name: string,
+  placeName: string | undefined,
+  checkIn: string,
+  price: number | undefined,
+  priceCurrency: string | undefined,
+): Promise<void> {
+  const existing = await db.expenses.where('accommodationId').equals(accommodationId).first()
+  if (!price || !priceCurrency) {
+    if (existing) await db.expenses.delete(existing.id)
+    return
+  }
+  const note = placeName ? `${name} · ${placeName}` : name
+  if (existing) {
+    await ExpenseRepository.update(existing.id, { amount: price, currency: priceCurrency, note, date: checkIn })
+  } else {
+    await ExpenseRepository.create({
+      tripId, categoryId: 'cat-accommodation',
+      amount: price, currency: priceCurrency,
+      date: checkIn, note, accommodationId,
+    })
+  }
+}
+
 async function deleteStopsForAccommodation(accommodationId: string): Promise<void> {
   const stops = await db.stops.where('accommodationId').equals(accommodationId).toArray()
   await Promise.all(stops.map(s => db.stops.delete(s.id)))
@@ -106,6 +133,7 @@ export const AccommodationRepository = {
     await db.accommodations.add({ ...input, id })
     await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
     await syncStopsForAccommodation(input.tripId, id, input.name, input.link, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId)
+    await syncExpenseForAccommodation(id, input.tripId, input.name, input.placeName, input.checkIn, input.price, input.priceCurrency)
     return id
   },
 
@@ -122,14 +150,14 @@ export const AccommodationRepository = {
       || ('lng' in updates && updates.lng !== existing.lng)
     if (datesChanged) await unassignFromDays(existing.tripId, id)
     await db.accommodations.update(id, updates)
+    const updated = (await db.accommodations.get(id))!
     if (datesChanged) {
-      const updated = (await db.accommodations.get(id))!
       await assignToDays(existing.tripId, id, updated.checkIn, updated.checkOut)
     }
     if (stopsAffected) {
-      const updated = (await db.accommodations.get(id))!
       await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.link, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId)
     }
+    await syncExpenseForAccommodation(id, existing.tripId, updated.name, updated.placeName, updated.checkIn, updated.price, updated.priceCurrency)
   },
 
   async delete(id: string): Promise<void> {
@@ -137,6 +165,8 @@ export const AccommodationRepository = {
     if (existing) {
       await unassignFromDays(existing.tripId, id)
       await deleteStopsForAccommodation(id)
+      const expense = await db.expenses.where('accommodationId').equals(id).first()
+      if (expense) await db.expenses.delete(expense.id)
     }
     await db.accommodations.delete(id)
   },

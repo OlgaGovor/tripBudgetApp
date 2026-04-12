@@ -9,6 +9,7 @@ import { AccommodationRepository } from '../../../db/repositories/AccommodationR
 import type { Accommodation } from '../../../db/schema'
 import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
+import CurrencySelectModal from './CurrencySelectModal'
 
 const STATUSES: Accommodation['status'][] = ['not_booked', 'booked', 'booked_paid']
 const STATUS_LABELS: Record<Accommodation['status'], string> = {
@@ -35,6 +36,11 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
   const [lng, setLng] = useState<number | undefined>()
   const [selectedStopId, setSelectedStopId] = useState<string | undefined>()
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
+  const [showCurrencySelect, setShowCurrencySelect] = useState(false)
+  const [price, setPrice] = useState('')
+  const [priceCurrency, setPriceCurrency] = useState('')
+
+  const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
 
   const dayStops = useLiveQuery(async () => {
     if (!checkIn || !tripId) return []
@@ -55,6 +61,8 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       setLat(accommodation.lat)
       setLng(accommodation.lng)
       setSelectedStopId(undefined)
+      setPrice(accommodation.price?.toString() ?? '')
+      setPriceCurrency(accommodation.priceCurrency ?? '')
     } else {
       setName(''); setStatus('not_booked')
       setCheckIn(initialDate ?? '')
@@ -64,23 +72,27 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       setCheckOut(nextDay)
       setLink(''); setNotes('')
       setPlaceName(''); setLat(undefined); setLng(undefined); setSelectedStopId(undefined)
+      setPrice(''); setPriceCurrency(trip?.defaultCurrency ?? '')
     }
-  }, [accommodation, isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accommodation, isOpen, trip?.defaultCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const dateValid = !checkIn || !checkOut || checkOut > checkIn
 
   async function handleSave() {
     if (!name.trim() || !checkIn || !checkOut || !dateValid) return
+    const parsedPrice = price ? parseFloat(price) : undefined
     const data = {
       tripId, name, status, checkIn, checkOut,
       link: link || undefined,
       notes: notes || undefined,
       placeName: placeName || undefined,
       lat, lng,
+      price: parsedPrice,
+      priceCurrency: priceCurrency || undefined,
       usefulLinks: [] as Accommodation['usefulLinks'],
     }
     if (accommodation) {
-      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, lat, lng }, selectedStopId)
+      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, lat, lng, price: parsedPrice, priceCurrency: priceCurrency || undefined }, selectedStopId)
     } else {
       await AccommodationRepository.create(data, selectedStopId)
     }
@@ -121,6 +133,25 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
               <IonInput type="date" value={checkOut} onIonInput={e => setCheckOut(e.detail.value ?? '')} />
             </IonItem>
             {!dateValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>Check-out must be after check-in</p>}
+            <IonItem>
+              <IonLabel position="stacked">Price</IonLabel>
+              <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
+                <IonInput
+                  type="number" value={price} onIonInput={e => setPrice(e.detail.value ?? '')}
+                  placeholder="0" style={{ flex: 1 }}
+                />
+                <div
+                  onClick={() => setShowCurrencySelect(true)}
+                  style={{
+                    flexShrink: 0, minWidth: 52, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                    background: 'var(--ion-color-light-shade)', textAlign: 'center',
+                    fontSize: '0.85rem', fontWeight: 600, color: priceCurrency ? 'inherit' : 'var(--ion-color-medium)',
+                  }}
+                >
+                  {priceCurrency || 'CCY'}
+                </div>
+              </div>
+            </IonItem>
             <IonItem>
               <IonLabel position="stacked">Link</IonLabel>
               <IonInput value={link} onIonInput={e => setLink(e.detail.value ?? '')} placeholder="https://..." />
@@ -178,6 +209,12 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       onDismiss={() => setShowPlaceSearch(false)}
       onSelect={r => { setPlaceName(r.name); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
       title="Search place"
+    />
+    <CurrencySelectModal
+      isOpen={showCurrencySelect}
+      onDismiss={() => setShowCurrencySelect(false)}
+      onSelect={code => setPriceCurrency(code)}
+      selectedCode={priceCurrency}
     />
     </>
   )
