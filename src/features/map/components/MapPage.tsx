@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel } from '@ionic/react'
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonButtons, IonButton, IonIcon } from '@ionic/react'
+import { homeOutline } from 'ionicons/icons'
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
-import { useParams } from 'react-router-dom'
+import { useParams, useHistory } from 'react-router-dom'
 import { useMapData } from '../hooks/useMapData'
 import { fetchRoadRoute, greatCircleArc } from '../../../lib/routing'
 import type { TransportLeg } from '../../../db/schema'
@@ -19,6 +20,7 @@ interface RouteSegment {
 
 const MapPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
+  const history = useHistory()
   const { stopsWithCoords, unpinnedStops, legs } = useMapData(tripId)
   const [routes, setRoutes] = useState<RouteSegment[]>([])
 
@@ -63,7 +65,14 @@ const MapPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader><IonToolbar><IonTitle>Map</IonTitle></IonToolbar></IonHeader>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={() => history.push('/')}><IonIcon icon={homeOutline} /></IonButton>
+          </IonButtons>
+          <IonTitle>Map</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <IonContent scrollY={false}>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, minHeight: 0 }}>

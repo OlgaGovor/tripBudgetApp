@@ -4,8 +4,8 @@ import {
   IonFab, IonFabButton, IonIcon, IonModal, IonButtons, IonButton,
   IonItem, IonLabel, IonInput,
 } from '@ionic/react'
-import { add } from 'ionicons/icons'
-import { useParams } from 'react-router-dom'
+import { add, homeOutline } from 'ionicons/icons'
+import { useParams, useHistory } from 'react-router-dom'
 import { usePacking } from '../hooks/usePacking'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import { PackingRepository } from '../../../db/repositories/PackingRepository'
@@ -13,6 +13,7 @@ import PackingItemRow from './PackingItemRow'
 
 const PackingPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
+  const history = useHistory()
   const { items } = usePacking(tripId)
   const trips = TripRepository.useAll() ?? []
   const [showAdd, setShowAdd] = useState(false)
@@ -40,6 +41,9 @@ const PackingPage: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={() => history.push('/')}><IonIcon icon={homeOutline} /></IonButton>
+          </IonButtons>
           <IonTitle>Packing</IonTitle>
           <IonButtons slot="end">
             {trips.filter(t => t.id !== tripId && items.length === 0).length > 0 && (

@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList,
+  IonButtons, IonButton,
 } from '@ionic/react'
-import { add } from 'ionicons/icons'
-import { useParams } from 'react-router-dom'
+import { add, homeOutline } from 'ionicons/icons'
+import { useParams, useHistory } from 'react-router-dom'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import { ExpenseRepository } from '../../../db/repositories/ExpenseRepository'
 import { useExpenses } from '../hooks/useExpenses'
@@ -14,6 +15,7 @@ import type { Expense } from '../../../db/schema'
 
 const ExpensesPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
+  const history = useHistory()
   const trip = TripRepository.useById(tripId)
   const { expenses, categories } = useExpenses(tripId)
   const [totalSpent, setTotalSpent] = useState(0)
@@ -36,7 +38,12 @@ const ExpensesPage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar><IonTitle>Expenses</IonTitle></IonToolbar>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={() => history.push('/')}><IonIcon icon={homeOutline} /></IonButton>
+          </IonButtons>
+          <IonTitle>Expenses</IonTitle>
+        </IonToolbar>
       </IonHeader>
       <IonContent>
         <BudgetBar trip={trip} totalSpent={totalSpent} />

@@ -1,14 +1,15 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonButtons, IonIcon,
 } from '@ionic/react'
-import { chevronBackOutline, chevronForwardOutline } from 'ionicons/icons'
+import { chevronBackOutline, chevronForwardOutline, homeOutline } from 'ionicons/icons'
 import { useParams, useHistory } from 'react-router-dom'
 import { useDays } from '../../planner/hooks/useDays'
 import { useTransportLegs } from '../../planner/hooks/useTransportLegs'
 import { useAccommodations } from '../../planner/hooks/useAccommodations'
 import { StopRepository } from '../../../db/repositories/StopRepository'
+import { TripRepository } from '../../../db/repositories/TripRepository'
 import CalendarGrid from './CalendarGrid'
 import type { BudgetStatus } from '../../../lib/budget'
 
@@ -19,11 +20,23 @@ const CalendarPage: React.FC = () => {
   const { days } = useDays(tripId)
   const { legs } = useTransportLegs(tripId)
   const { accommodations } = useAccommodations(tripId)
+  const trip = TripRepository.useById(tripId)
   const history = useHistory()
 
   const today = new Date().toISOString().slice(0, 10)
   const [viewYear, setViewYear] = useState(() => new Date().getUTCFullYear())
   const [viewMonth, setViewMonth] = useState(() => new Date().getUTCMonth())
+
+  const initialized = useRef(false)
+  useEffect(() => {
+    if (!trip || initialized.current) return
+    initialized.current = true
+    // Ongoing trip: open on today's month; not-yet-started or past: open on start date month
+    const targetDate = (today >= trip.startDate && today <= trip.endDate) ? today : trip.startDate
+    const d = new Date(targetDate + 'T00:00:00Z')
+    setViewYear(d.getUTCFullYear())
+    setViewMonth(d.getUTCMonth())
+  }, [trip]) // eslint-disable-line react-hooks/exhaustive-deps
   const [filter, setFilter] = useState<FilterMode>('all')
 
   const highlightRange = useMemo((): { from: string; to: string } | undefined => {
@@ -62,6 +75,7 @@ const CalendarPage: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
+            <IonButton onClick={() => history.push('/')}><IonIcon icon={homeOutline} /></IonButton>
             <IonButton onClick={prevMonth}><IonIcon icon={chevronBackOutline} /></IonButton>
           </IonButtons>
           <IonTitle>{MONTH_NAMES[viewMonth]} {viewYear}</IonTitle>
