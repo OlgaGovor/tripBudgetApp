@@ -1,11 +1,26 @@
 import { useEffect, useState } from 'react'
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonButtons, IonButton, IonIcon } from '@ionic/react'
 import { homeOutline } from 'ionicons/icons'
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import { useParams, useHistory } from 'react-router-dom'
 import { useMapData } from '../hooks/useMapData'
 import { fetchRoadRoute, greatCircleArc } from '../../../lib/routing'
 import type { TransportLeg } from '../../../db/schema'
+
+/** Watches the map container with ResizeObserver and calls invalidateSize() whenever
+ *  the container dimensions change — fixes the blank-map issue when Leaflet initializes
+ *  before IonContent finishes painting (common on desktop). */
+const MapResizer: React.FC = () => {
+  const map = useMap()
+  useEffect(() => {
+    const container = map.getContainer()
+    map.invalidateSize()
+    const observer = new ResizeObserver(() => map.invalidateSize())
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [map])
+  return null
+}
 
 const LINE_COLOR: Record<string, string> = {
   booked_paid: '#27ae60', booked: '#f39c12', not_booked: '#e74c3c',
@@ -77,6 +92,7 @@ const MapPage: React.FC = () => {
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, minHeight: 0 }}>
             <MapContainer center={center} zoom={stopsWithCoords.length ? 6 : 2} style={{ height: '100%', width: '100%' }}>
+              <MapResizer />
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
