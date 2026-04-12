@@ -108,13 +108,13 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         <IonContent className="ion-padding">
           <IonItem>
             <IonLabel position="stacked">Method</IonLabel>
-            <IonSelect value={method} onIonChange={e => setMethod(e.detail.value)}>
+            <IonSelect interface="popover" value={method} onIonChange={e => setMethod(e.detail.value)}>
               {METHODS.map(m => <IonSelectOption key={m} value={m}>{METHOD_LABELS[m]}</IonSelectOption>)}
             </IonSelect>
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Status</IonLabel>
-            <IonSelect value={status} onIonChange={e => setStatus(e.detail.value)}>
+            <IonSelect interface="popover" value={status} onIonChange={e => setStatus(e.detail.value)}>
               {STATUSES.map(s => <IonSelectOption key={s} value={s}>{STATUS_LABELS[s]}</IonSelectOption>)}
             </IonSelect>
           </IonItem>

@@ -29,6 +29,11 @@ const AccommodationBlock: React.FC<Props> = ({ accommodation }) => {
         {accommodation.link && (
           <a href={accommodation.link} target="_blank" rel="noreferrer" style={{ marginLeft: 6, fontSize: '0.75rem' }}>🔗</a>
         )}
+        {accommodation.notes && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--ion-color-medium)', marginTop: 2, whiteSpace: 'pre-wrap' }}>
+            {accommodation.notes}
+          </div>
+        )}
       </span>
       <span style={{ width: 10, height: 10, borderRadius: '50%', background: STATUS_COLORS[accommodation.status] }} />
       <IonButton fill="clear" size="small" onClick={() => setShowForm(true)}>

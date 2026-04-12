@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { IonButton, IonIcon } from '@ionic/react'
 import { addOutline, chevronUpOutline, chevronDownOutline, pencilOutline, trashOutline } from 'ionicons/icons'
 import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
-import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import TransportLegItem from './TransportLegItem'
 import TransportLegFormModal from './TransportLegFormModal'
 import StopFormModal from './StopFormModal'
@@ -24,13 +24,14 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, nearbyStops
   const [showTransportForm, setShowTransportForm] = useState(false)
   const [showStopEditForm, setShowStopEditForm] = useState(false)
 
+  const usedAsDestination = useLiveQuery(
+    () => db.transportLegs.where('toStopId').equals(stop.id).first().then(leg => !!leg),
+    [stop.id]
+  )
+  const usedInTransport = legsFromThisStop.length > 0 || !!usedAsDestination
+
   async function handleDelete() {
-    const legUsingThisAsDestination = await db.transportLegs.where('toStopId').equals(stop.id).first()
-    if (legUsingThisAsDestination) {
-      await TransportLegRepository.delete(legUsingThisAsDestination.id)
-    } else {
-      await db.stops.delete(stop.id)
-    }
+    await db.stops.delete(stop.id)
   }
 
   const nearbyOtherStops = nearbyStops?.filter(ns => ns.stop.id !== stop.id)
@@ -55,7 +56,12 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, nearbyStops
           <IonButton fill="clear" size="small" onClick={() => setShowStopEditForm(true)}>
             <IonIcon icon={pencilOutline} />
           </IonButton>
-          <IonButton fill="clear" size="small" color="danger" onClick={handleDelete}>
+          <IonButton
+            fill="clear" size="small" color="danger"
+            onClick={handleDelete}
+            disabled={usedInTransport}
+            title={usedInTransport ? 'Used in a transport leg — remove the transport first' : undefined}
+          >
             <IonIcon icon={trashOutline} />
           </IonButton>
         </div>

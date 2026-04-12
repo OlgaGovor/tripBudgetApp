@@ -30,6 +30,9 @@ class TripBudgetDB extends Dexie {
       exchangeRateCache: 'base',
       userSettings:      'id',
     })
+    this.version(2).stores({
+      stops: 'id, dayId, accommodationId',
+    })
   }
 }
 

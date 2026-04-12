@@ -2,11 +2,9 @@ import { useState } from 'react'
 import { IonButton, IonIcon } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline, addOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Day, Stop, TransportLeg } from '../../../db/schema'
+import type { Accommodation, Day, Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
 import { useStops } from '../hooks/useStops'
-import { useTransportLegs } from '../hooks/useTransportLegs'
-import { useAccommodations } from '../hooks/useAccommodations'
 import { DayRepository } from '../../../db/repositories/DayRepository'
 import { StopRepository } from '../../../db/repositories/StopRepository'
 import StopItem from './StopItem'
@@ -21,6 +19,8 @@ const METHOD_ICONS: Record<TransportLeg['method'], string> = {
 interface Props {
   day: Day
   tripId: string
+  legs: TransportLeg[]
+  accommodations: Accommodation[]
   isLastDay?: boolean
 }
 
@@ -67,13 +67,11 @@ const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
   )
 }
 
-const DayCard: React.FC<Props> = ({ day, tripId, isLastDay }) => {
+const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [showStopForm, setShowStopForm] = useState(false)
   const [showAccomForm, setShowAccomForm] = useState(false)
   const { stops } = useStops(day.id)
-  const { legs } = useTransportLegs(tripId)
-  const { accommodations } = useAccommodations(tripId)
 
   const nearbyStops = useLiveQuery<Array<{ stop: Stop; dayNumber: number }>>(
     async () => {

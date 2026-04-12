@@ -34,6 +34,7 @@ export interface Stop {
   lat?: number             // undefined = offline / not yet pinned
   lng?: number
   placeLink?: string
+  accommodationId?: string // set when auto-created from an accommodation
   usefulLinks: Link[]
 }
 
@@ -56,11 +57,14 @@ export interface Accommodation {
   id: string
   tripId: string
   name: string
+  placeName?: string       // searchable place name (used as stop placeName)
+  lat?: number
+  lng?: number
   link?: string
   status: 'not_booked' | 'booked' | 'booked_paid'
   checkIn: string          // YYYY-MM-DD (inclusive)
   checkOut: string         // YYYY-MM-DD (exclusive — hotel-style)
-  confirmationLink?: string
+  notes?: string
   usefulLinks: Link[]
 }
 
