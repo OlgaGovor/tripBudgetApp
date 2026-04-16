@@ -48,6 +48,7 @@ const DayCell: React.FC<Props> = ({
         border: '0.5px solid rgba(0,0,0,0.2)',
       }}
     >
+      {/* Row 1: date number + cumulative budget dot */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{
           fontSize: '0.75rem', fontWeight: 600,
@@ -57,35 +58,33 @@ const DayCell: React.FC<Props> = ({
             background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.65rem',
           }),
         }}>{dateNum}</span>
-        {budgetStatus && (
-          <span style={{
-            display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-            background: DAY_CARD_COLORS[budgetStatus],
-          }} />
-        )}
+        <span style={{
+          display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+          background: budgetStatus ? DAY_CARD_COLORS[budgetStatus] : 'transparent',
+          visibility: budgetStatus ? 'visible' : 'hidden',
+        }} />
       </div>
       {day && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Row 2: day number + daily spend amount */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '0.75rem' }}>
             <div style={{ fontSize: '0.6rem', color: 'var(--ion-color-medium)' }}>Day {day.dayNumber}</div>
-            {effectiveDailyBudget && dailySpent !== undefined && dailySpent > 0 && (
-              <div style={{
-                fontSize: '0.55rem', fontWeight: 600,
-                color: DAY_CARD_COLORS[getDayCardStatus(dailySpent / effectiveDailyBudget)],
-              }}>
-                {Math.round(dailySpent)}
-              </div>
-            )}
-          </div>
-          {firstStopName && (
-            <div style={{ fontSize: '0.6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-              {firstStopName.slice(0, 12)}
+            <div style={{
+              fontSize: '0.55rem', fontWeight: 600,
+              color: effectiveDailyBudget && dailySpent ? DAY_CARD_COLORS[getDayCardStatus(dailySpent / effectiveDailyBudget)] : 'transparent',
+              visibility: effectiveDailyBudget && dailySpent ? 'visible' : 'hidden',
+            }}>
+              {Math.round(dailySpent ?? 0)}
             </div>
-          )}
-          {accomColor && (
-            <div style={{ height: 3, background: accomColor, borderRadius: 2, marginTop: 2 }} />
-          )}
-          <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 1 }}>
+          </div>
+          {/* Row 3: first stop name */}
+          <div style={{ fontSize: '0.6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', minHeight: '0.75rem' }}>
+            {firstStopName?.slice(0, 12) ?? ''}
+          </div>
+          {/* Row 4: accommodation bar */}
+          <div style={{ height: 3, borderRadius: 2, marginTop: 2, background: accomColor ?? 'transparent' }} />
+          {/* Row 5: transport icons */}
+          <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 1, minHeight: '0.75rem' }}>
             {departingLegs.map((l, i) => (
               <span key={i} style={{ position: 'relative', display: 'inline-block', fontSize: '0.55rem' }}>
                 {METHOD_ICONS[l.method] ?? '🚐'}
