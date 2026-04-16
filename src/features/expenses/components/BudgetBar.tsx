@@ -9,10 +9,8 @@ interface Props {
 const BudgetBar: React.FC<Props> = ({ trip, totalSpent }) => {
   const today = new Date().toISOString().slice(0, 10)
   const start = new Date(trip.startDate + 'T00:00:00Z')
-  const end = new Date(trip.endDate + 'T00:00:00Z')
   const now = new Date(today + 'T00:00:00Z')
   const daysElapsed = Math.max(1, Math.floor((now.getTime() - start.getTime()) / 86400000) + 1)
-  const totalDays = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1
 
   if (!trip.budget.dailyAmount && !trip.budget.total) return null
 
@@ -35,7 +33,7 @@ const BudgetBar: React.FC<Props> = ({ trip, totalSpent }) => {
         )
       })()}
       {trip.budget.total && (() => {
-        const status = getTotalBudgetStatus(totalSpent, trip.budget.total, daysElapsed, totalDays)
+        const status = getTotalBudgetStatus(totalSpent, trip.budget.total)
         const pct = Math.min(100, (totalSpent / trip.budget.total) * 100)
         return (
           <div>

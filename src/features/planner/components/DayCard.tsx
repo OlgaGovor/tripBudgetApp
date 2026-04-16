@@ -7,6 +7,7 @@ import { db } from '../../../db/db'
 import { useStops } from '../hooks/useStops'
 import { DayRepository } from '../../../db/repositories/DayRepository'
 import { StopRepository } from '../../../db/repositories/StopRepository'
+import { getDayCardStatus, DAY_CARD_COLORS } from '../../../lib/budget'
 import StopItem from './StopItem'
 import AccommodationBlock from './AccommodationBlock'
 import StopFormModal from './StopFormModal'
@@ -22,6 +23,10 @@ interface Props {
   legs: TransportLeg[]
   accommodations: Accommodation[]
   isLastDay?: boolean
+  dailySpent?: number
+  cumulativeSpent?: number
+  effectiveDailyBudget?: number
+  currency?: string
 }
 
 function addDaysToDateStr(dateStr: string, n: number): string {
@@ -67,7 +72,7 @@ const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
   )
 }
 
-const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay }) => {
+const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay, dailySpent = 0, cumulativeSpent = 0, effectiveDailyBudget, currency }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [showStopForm, setShowStopForm] = useState(false)
   const [showAccomForm, setShowAccomForm] = useState(false)
@@ -116,6 +121,19 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay
         style={{ display: 'flex', alignItems: 'center', padding: '0.75rem 1rem', cursor: 'pointer', fontWeight: 600 }}
       >
         <span style={{ flex: 1 }}>Day {day.dayNumber} · {formatDate(day.date)}</span>
+        {effectiveDailyBudget && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
+            {dailySpent > 0 && (
+              <span style={{ fontSize: '0.8rem', fontWeight: 400, color: DAY_CARD_COLORS[getDayCardStatus(dailySpent / effectiveDailyBudget)] }}>
+                {dailySpent.toFixed(0)} {currency}
+              </span>
+            )}
+            <span style={{
+              display: 'inline-block', width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+              background: DAY_CARD_COLORS[getDayCardStatus(cumulativeSpent / (effectiveDailyBudget * day.dayNumber))],
+            }} />
+          </div>
+        )}
         <IonIcon icon={collapsed ? chevronDownOutline : chevronUpOutline} />
       </div>
 

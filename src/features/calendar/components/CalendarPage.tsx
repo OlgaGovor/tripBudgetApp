@@ -8,10 +8,11 @@ import { useParams, useHistory } from 'react-router-dom'
 import { useDays } from '../../planner/hooks/useDays'
 import { useTransportLegs } from '../../planner/hooks/useTransportLegs'
 import { useAccommodations } from '../../planner/hooks/useAccommodations'
+import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { StopRepository } from '../../../db/repositories/StopRepository'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import CalendarGrid from './CalendarGrid'
-import type { BudgetStatus } from '../../../lib/budget'
+import { getDayCardStatus, type BudgetStatus } from '../../../lib/budget'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -32,6 +33,7 @@ const CalendarPage: React.FC = () => {
   const { days } = useDays(tripId)
   const { legs } = useTransportLegs(tripId)
   const { accommodations } = useAccommodations(tripId)
+  const { expenses } = useExpenses(tripId)
   const trip = TripRepository.useById(tripId)
   const history = useHistory()
 
@@ -65,7 +67,23 @@ const CalendarPage: React.FC = () => {
     })
   }, [months]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const effectiveDailyBudget: number | undefined = trip
+    ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))
+    : undefined
+
+  const spentByDate: Record<string, number> = {}
+  for (const e of expenses) {
+    spentByDate[e.date] = (spentByDate[e.date] ?? 0) + e.amountConverted
+  }
+
   const budgetStatusByDate: Record<string, BudgetStatus> = {}
+  if (effectiveDailyBudget) {
+    let running = 0
+    for (const day of [...days].sort((a, b) => a.date.localeCompare(b.date))) {
+      running += spentByDate[day.date] ?? 0
+      budgetStatusByDate[day.date] = getDayCardStatus(running / (effectiveDailyBudget * day.dayNumber))
+    }
+  }
 
   return (
     <IonPage>
@@ -94,6 +112,8 @@ const CalendarPage: React.FC = () => {
                   legs={legs}
                   stopNamesByDayId={stopNamesByDayId}
                   budgetStatusByDate={budgetStatusByDate}
+                  spentByDate={spentByDate}
+                  effectiveDailyBudget={effectiveDailyBudget}
                   onDayClick={_date => history.push(`/trips/${tripId}/plan`)}
                 />
               </div>

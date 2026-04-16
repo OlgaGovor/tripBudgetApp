@@ -23,6 +23,8 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
   const [startDate, setStartDate] = useState(trip?.startDate ?? '')
   const [endDate, setEndDate] = useState(trip?.endDate ?? '')
   const [currency, setCurrency] = useState(trip?.defaultCurrency ?? 'EUR')
+  const [budgetTotal, setBudgetTotal] = useState(trip?.budget.total?.toString() ?? '')
+  const [budgetDaily, setBudgetDaily] = useState(trip?.budget.dailyAmount?.toString() ?? '')
 
   // Sync form fields when trip data first becomes available (e.g. loaded from DB after mount)
   useEffect(() => {
@@ -33,16 +35,22 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
     setStartDate(trip?.startDate ?? '')
     setEndDate(trip?.endDate ?? '')
     setCurrency(trip?.defaultCurrency ?? 'EUR')
+    setBudgetTotal(trip?.budget.total?.toString() ?? '')
+    setBudgetDaily(trip?.budget.dailyAmount?.toString() ?? '')
   }, [trip?.id])
 
   const dateValid = !startDate || !endDate || endDate >= startDate
 
   async function handleSave() {
     if (!name.trim() || !startDate || !endDate || !dateValid) return
+    const budget = {
+      total: budgetTotal ? parseFloat(budgetTotal) : undefined,
+      dailyAmount: budgetDaily ? parseFloat(budgetDaily) : undefined,
+    }
     if (trip) {
-      await TripRepository.update({ id: trip.id, name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency })
+      await TripRepository.update({ id: trip.id, name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget })
     } else {
-      await TripRepository.create({ name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget: {} })
+      await TripRepository.create({ name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget })
     }
     onDismiss()
   }
@@ -90,6 +98,26 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
           <IonSelect value={currency} onIonChange={e => setCurrency(e.detail.value)}>
             {CURRENCIES.map(c => <IonSelectOption key={c} value={c}>{c}</IonSelectOption>)}
           </IonSelect>
+        </IonItem>
+        <IonItem>
+          <IonLabel position="stacked">Total budget ({currency})</IonLabel>
+          <IonInput
+            type="number"
+            min="0"
+            value={budgetTotal}
+            onIonInput={e => setBudgetTotal(e.detail.value ?? '')}
+            placeholder="e.g. 3000"
+          />
+        </IonItem>
+        <IonItem>
+          <IonLabel position="stacked">Daily budget ({currency})</IonLabel>
+          <IonInput
+            type="number"
+            min="0"
+            value={budgetDaily}
+            onIonInput={e => setBudgetDaily(e.detail.value ?? '')}
+            placeholder="e.g. 150"
+          />
         </IonItem>
         <div style={{ padding: '1rem 0 0.5rem' }}>
           <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem' }}>Card colour</p>

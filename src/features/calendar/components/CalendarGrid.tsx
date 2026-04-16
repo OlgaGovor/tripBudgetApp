@@ -21,12 +21,14 @@ interface Props {
   legs: TransportLeg[]
   stopNamesByDayId: Record<string, string>
   budgetStatusByDate: Record<string, BudgetStatus>
+  spentByDate?: Record<string, number>
+  effectiveDailyBudget?: number
   onDayClick: (date: string) => void
 }
 
 const CalendarGrid: React.FC<Props> = ({
   year, month, days, accommodations, legs,
-  stopNamesByDayId, budgetStatusByDate, onDayClick,
+  stopNamesByDayId, budgetStatusByDate, spentByDate, effectiveDailyBudget, onDayClick,
 }) => {
   const cells = useMemo(() => {
     const first = startOfMonth(year, month)
@@ -64,7 +66,7 @@ const CalendarGrid: React.FC<Props> = ({
   }, [legs])
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0 }}>
       {WEEKDAYS.map(d => (
         <div key={d} style={{ textAlign: 'center', fontSize: '0.65rem', color: 'var(--ion-color-medium)', padding: '4px 0' }}>
           {d}
@@ -82,6 +84,8 @@ const CalendarGrid: React.FC<Props> = ({
             departingLegs={legsByDate.get(date) ?? []}
             firstStopName={day ? stopNamesByDayId[day.id] : undefined}
             budgetStatus={budgetStatusByDate[date]}
+            dailySpent={spentByDate?.[date]}
+            effectiveDailyBudget={effectiveDailyBudget}
             isInHighlightRange={false}
             onClick={() => onDayClick(date)}
           />

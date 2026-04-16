@@ -62,7 +62,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       setLng(accommodation.lng)
       setSelectedStopId(undefined)
       setPrice(accommodation.price?.toString() ?? '')
-      setPriceCurrency(accommodation.priceCurrency ?? '')
+      setPriceCurrency(accommodation.priceCurrency ?? trip?.defaultCurrency ?? '')
     } else {
       setName(''); setStatus('not_booked')
       setCheckIn(initialDate ?? '')

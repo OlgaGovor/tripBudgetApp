@@ -18,17 +18,16 @@ describe('getDailyBudgetStatus', () => {
 })
 
 describe('getTotalBudgetStatus', () => {
-  it('returns under when spend pace is below 95%', () => {
-    // total=1000, 3/10 days elapsed → pace=300; spent=200 → 67%
-    expect(getTotalBudgetStatus(200, 1000, 3, 10)).toBe('under')
+  it('returns under when spent is below 95% of total', () => {
+    expect(getTotalBudgetStatus(900, 1000)).toBe('under')
   })
 
-  it('returns warning when pace 95–100%', () => {
-    expect(getTotalBudgetStatus(295, 1000, 3, 10)).toBe('warning')
+  it('returns warning when spent is 95–100% of total', () => {
+    expect(getTotalBudgetStatus(960, 1000)).toBe('warning')
   })
 
-  it('returns over when pace exceeded', () => {
-    expect(getTotalBudgetStatus(310, 1000, 3, 10)).toBe('over')
+  it('returns over when spent exceeds total', () => {
+    expect(getTotalBudgetStatus(1010, 1000)).toBe('over')
   })
 })
 

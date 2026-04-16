@@ -69,7 +69,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     setBookingLink(leg?.bookingLink ?? '')
     setNotes(leg?.notes ?? '')
     setPrice(leg?.price?.toString() ?? '')
-    setPriceCurrency(leg?.priceCurrency ?? (leg ? '' : (trip?.defaultCurrency ?? '')))
+    setPriceCurrency(leg?.priceCurrency ?? trip?.defaultCurrency ?? '')
   }, [isOpen, leg?.id, toStop, trip?.defaultCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const timeValid = !departureDateTime || !arrivalDateTime || arrivalDateTime >= departureDateTime
