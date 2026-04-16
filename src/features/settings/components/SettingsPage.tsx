@@ -44,7 +44,7 @@ const SettingsPage: React.FC = () => {
             <IonLabel>{settings.googleConnected ? 'Google Drive connected' : 'Google Drive'}</IonLabel>
             {settings.googleConnected
               ? <IonButton slot="end" fill="outline" color="danger" onClick={async () => { signOut(); await SettingsRepository.update({ googleConnected: false }) }}>Sign out</IonButton>
-              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn()}>Sign in</IonButton>
+              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => { await SettingsRepository.update({ googleConnected: true }) })}>Sign in</IonButton>
             }
           </IonItem>
           {settings.lastSyncedAt && (
