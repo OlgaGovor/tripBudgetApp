@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { IonApp, setupIonicReact } from '@ionic/react'
 import App from './App'
 import { ExpenseCategoryRepository } from './db/repositories/ExpenseCategoryRepository'
+import { startAutoSync } from './sync/SyncManager'
 
 import './index.css'
 
@@ -28,6 +29,10 @@ delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow })
 
 setupIonicReact()
+startAutoSync()
+if (navigator.storage?.persist) {
+  navigator.storage.persist()
+}
 ExpenseCategoryRepository.ensureSeeded()
 
 createRoot(document.getElementById('root')!).render(

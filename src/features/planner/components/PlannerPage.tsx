@@ -46,7 +46,7 @@ const PlannerPage: React.FC = () => {
           </IonButtons>
           <IonTitle>Plan</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => setShowEditTrip(true)}>
+            <IonButton onClick={() => history.push(`/trips/${tripId}/summary`)}>
               <IonIcon icon={ellipsisVertical} />
             </IonButton>
           </IonButtons>

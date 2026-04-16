@@ -6,6 +6,7 @@ import CalendarPage from '../features/calendar/components/CalendarPage'
 import ExpensesPage from '../features/expenses/components/ExpensesPage'
 import PackingPage from '../features/packing/components/PackingPage'
 import MapPage from '../features/map/components/MapPage'
+import SummaryPage from '../features/summary/components/SummaryPage'
 
 const TripShell: React.FC = () => {
   const { url, path, params } = useRouteMatch<{ tripId: string }>()
@@ -19,6 +20,7 @@ const TripShell: React.FC = () => {
         <Route exact path={`${path}/expenses`} component={ExpensesPage} />
         <Route exact path={`${path}/map`} component={MapPage} />
         <Route exact path={`${path}/packing`} component={PackingPage} />
+        <Route exact path={`${path}/summary`} component={SummaryPage} />
         <Route exact path={path} render={() => <Redirect to={`${url}/plan`} />} />
       </IonRouterOutlet>
 

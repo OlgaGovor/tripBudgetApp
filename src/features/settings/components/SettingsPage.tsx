@@ -7,6 +7,8 @@ import { homeOutline } from 'ionicons/icons'
 import { useHistory } from 'react-router-dom'
 import { SettingsRepository } from '../../../db/repositories/SettingsRepository'
 import { ExpenseCategoryRepository } from '../../../db/repositories/ExpenseCategoryRepository'
+import { requestSignIn, signOut } from '../../../sync/GoogleDriveSync'
+import { uploadTrip } from '../../../sync/SyncManager'
 import CategoryEditor from './CategoryEditor'
 import DataManagementSection from './DataManagementSection'
 
@@ -36,6 +38,37 @@ const SettingsPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
+        <SectionHeader title="ACCOUNT & SYNC" />
+        <IonList>
+          <IonItem>
+            <IonLabel>{settings.googleConnected ? 'Google Drive connected' : 'Google Drive'}</IonLabel>
+            {settings.googleConnected
+              ? <IonButton slot="end" fill="outline" color="danger" onClick={async () => { signOut(); await SettingsRepository.update({ googleConnected: false }) }}>Sign out</IonButton>
+              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn()}>Sign in</IonButton>
+            }
+          </IonItem>
+          {settings.lastSyncedAt && (
+            <IonItem>
+              <IonLabel color="medium">Last synced: {new Date(settings.lastSyncedAt).toLocaleString()}</IonLabel>
+            </IonItem>
+          )}
+          <IonItem>
+            <IonLabel>Sync over</IonLabel>
+            <IonSelect
+              value={settings.syncCondition}
+              onIonChange={e => SettingsRepository.update({ syncCondition: e.detail.value })}
+              disabled={!settings.googleConnected}
+            >
+              <IonSelectOption value="wifi">Wi-Fi only</IonSelectOption>
+              <IonSelectOption value="wifi_and_mobile">Wi-Fi + mobile data</IonSelectOption>
+              <IonSelectOption value="manual">Manual only</IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem button onClick={() => uploadTrip()} disabled={!settings.googleConnected}>
+            <IonLabel>Sync now</IonLabel>
+          </IonItem>
+        </IonList>
+
         <SectionHeader title="PREFERENCES" />
         <IonList>
           <IonItem>
