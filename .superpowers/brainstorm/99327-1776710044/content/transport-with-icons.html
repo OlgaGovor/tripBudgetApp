@@ -1,0 +1,153 @@
+<style>
+  body { font-family: -apple-system, sans-serif; }
+  .day-card {
+    background: #fff; border-radius: 12px; border: 1px solid #e0e0e0;
+    overflow: hidden; font-size: 13px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    max-width: 300px;
+  }
+  .day-header {
+    background: #f5f5f5; padding: 8px 12px; font-weight: 700;
+    font-size: 12px; color: #555; border-bottom: 1px solid #e0e0e0;
+  }
+  .stop {
+    display: flex; align-items: center;
+    border-left: 3px solid #3880ff;
+    margin: 8px 10px 0; border-radius: 4px; background: #f8f9ff;
+    padding: 7px 10px; gap: 8px;
+  }
+  .stop-icon { font-size: 16px; flex-shrink: 0; }
+  .stop-body { flex: 1; }
+  .stop-name { font-weight: 600; color: #222; font-size: 13px; }
+  .stop-meta { font-size: 11px; color: #999; margin-top: 1px; }
+
+  .transport-between {
+    margin: 5px 10px; padding: 7px 10px;
+    background: rgba(155,89,182,0.08); border-radius: 6px;
+    border-left: 3px solid #9b59b6;
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+  }
+  .transport-between .method { font-size: 15px; flex-shrink: 0; }
+  .transport-between .info { flex: 1; }
+  .transport-between .route { font-weight: 600; color: #444; }
+  .transport-between .time { font-size: 11px; color: #999; margin-top: 1px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .not-booked { background: #e74c3c; }
+  .booked { background: #f39c12; }
+  .booked-paid { background: #27ae60; }
+  .icon-btn { font-size: 11px; color: #ccc; }
+
+  .add-leg { margin: 4px 10px 7px; }
+  .add-leg button {
+    font-size: 11px; color: #bbb; background: none;
+    border: 1px dashed #ddd; border-radius: 10px;
+    padding: 3px 10px; cursor: pointer;
+  }
+  .spacer { height: 4px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+  @media (max-width: 600px) { .cols { grid-template-columns: 1fr; } }
+  .col-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; margin-bottom: 8px; font-weight: 600; }
+
+  .options { margin-top: 24px; }
+  .option { display: flex; align-items: flex-start; gap: 14px; padding: 12px 14px; border-radius: 8px; border: 2px solid #eee; cursor: pointer; margin-bottom: 10px; transition: border-color 0.15s; }
+  .option.selected { border-color: #3880ff; background: #f0f4ff; }
+  .letter { width: 26px; height: 26px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .option.selected .letter { background: #3880ff; color: #fff; }
+  .option h3 { margin: 0 0 3px; font-size: 13px; }
+  .option p { margin: 0; font-size: 12px; color: #888; }
+</style>
+
+<h2>Which stop icon feels right?</h2>
+<p class="subtitle">Same layout — trying different stop indicators</p>
+
+<div class="cols">
+
+  <div>
+    <div class="col-label">Preview</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+
+      <div class="stop">
+        <div class="stop-icon" id="icon-preview-1">📍</div>
+        <div class="stop-body">
+          <div class="stop-name">CDG — Paris</div>
+          <div class="stop-meta">stop 1</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Paris</button></div>
+
+      <div class="transport-between">
+        <span class="method">✈️</span>
+        <div class="info">
+          <div class="route">Paris → Rome</div>
+          <div class="time">10:00 → 13:30</div>
+        </div>
+        <span class="status-dot not-booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+
+      <div class="stop">
+        <div class="stop-icon" id="icon-preview-2">📍</div>
+        <div class="stop-body">
+          <div class="stop-name">Rome city centre</div>
+          <div class="stop-meta">stop 2</div>
+        </div>
+      </div>
+
+      <div class="transport-between">
+        <span class="method">🚌</span>
+        <div class="info">
+          <div class="route">Rome → Naples</div>
+          <div class="time">16:00 → 17:45</div>
+        </div>
+        <span class="status-dot booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+
+      <div class="stop">
+        <div class="stop-icon" id="icon-preview-3">📍</div>
+        <div class="stop-body">
+          <div class="stop-name">Naples</div>
+          <div class="stop-meta">stop 3</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Naples</button></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="col-label">Pick an icon style</div>
+    <div class="options">
+      <div class="option selected" data-choice="pin" onclick="pickIcon(this, '📍')">
+        <div class="letter">A</div>
+        <div><h3>📍 Pin</h3><p>Classic map pin — instantly recognisable as a location</p></div>
+      </div>
+      <div class="option" data-choice="dot" onclick="pickIcon(this, '🔵')">
+        <div class="letter">B</div>
+        <div><h3>🔵 Dot / circle</h3><p>Minimal — clean timeline feel, less visual noise</p></div>
+      </div>
+      <div class="option" data-choice="star" onclick="pickIcon(this, '⭐')">
+        <div class="letter">C</div>
+        <div><h3>⭐ Star</h3><p>Highlights stops as key points of interest</p></div>
+      </div>
+      <div class="option" data-choice="none" onclick="pickIcon(this, '')">
+        <div class="letter">D</div>
+        <div><h3>No icon</h3><p>Keep the blue left border as the only visual anchor</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function pickIcon(el, icon) {
+  document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  ['icon-preview-1','icon-preview-2','icon-preview-3'].forEach(id => {
+    document.getElementById(id).textContent = icon;
+  });
+}
+</script>

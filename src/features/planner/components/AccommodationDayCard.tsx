@@ -47,8 +47,10 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
     )
   }
 
+  const accom = accommodation
+
   async function handleDelete() {
-    await AccommodationRepository.delete(accommodation!.id)
+    await AccommodationRepository.delete(accom.id)
   }
 
   return (
@@ -61,12 +63,12 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
       }}>
         <span style={{ fontSize: '1rem', flexShrink: 0 }}>🏨</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, color: '#444' }}>{accommodation.name}</div>
+          <div style={{ fontWeight: 600, color: '#444' }}>{accom.name}</div>
           <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 1 }}>
-            {fmtDate(accommodation.checkIn)} → {fmtDate(accommodation.checkOut)}
+            {fmtDate(accom.checkIn)} → {fmtDate(accom.checkOut)}
           </div>
         </div>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[accommodation.status], flexShrink: 0 }} />
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[accom.status], flexShrink: 0 }} />
         <IonButton fill="clear" size="small" onClick={() => setShowForm(true)}>
           <IonIcon icon={pencilOutline} />
         </IonButton>
@@ -78,7 +80,7 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
         isOpen={showForm}
         onDismiss={() => setShowForm(false)}
         tripId={tripId}
-        accommodation={accommodation}
+        accommodation={accom}
       />
     </>
   )

@@ -1,0 +1,198 @@
+<style>
+  body { font-family: -apple-system, sans-serif; }
+  .day-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    font-size: 13px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    max-width: 340px;
+    margin: 0 auto;
+  }
+  .day-header {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #555;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .stop {
+    display: flex;
+    align-items: stretch;
+    border-left: 3px solid #3880ff;
+    margin: 8px 10px 0;
+    border-radius: 4px;
+    background: #f8f9ff;
+  }
+  .stop-body {
+    padding: 8px 10px;
+    flex: 1;
+  }
+  .stop-name { font-weight: 600; color: #222; }
+  .stop-meta { font-size: 11px; color: #999; margin-top: 2px; }
+
+  /* Transport card — Option A purple style */
+  .transport-between {
+    margin: 6px 10px;
+    padding: 7px 10px;
+    background: rgba(155,89,182,0.08);
+    border-radius: 6px;
+    border-left: 3px solid #9b59b6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #555;
+  }
+  .transport-between .method { font-size: 16px; line-height: 1; }
+  .transport-between .info { flex: 1; }
+  .transport-between .info .route { font-weight: 600; color: #444; }
+  .transport-between .info .time { font-size: 11px; color: #999; margin-top: 1px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .not-booked { background: #e74c3c; }
+  .booked { background: #f39c12; }
+  .booked-paid { background: #27ae60; }
+  .icon-btn { font-size: 12px; color: #bbb; cursor: pointer; }
+  .icon-btn:hover { color: #666; }
+
+  /* Add leg button — Option B grey style */
+  .add-leg {
+    margin: 4px 10px 8px;
+    text-align: left;
+  }
+  .add-leg button {
+    font-size: 11px;
+    color: #aaa;
+    background: none;
+    border: 1px dashed #ddd;
+    border-radius: 10px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-leg button:hover {
+    color: #666;
+    border-color: #bbb;
+    background: #f9f9f9;
+  }
+
+  .spacer { height: 6px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 600px) { .cols { grid-template-columns: 1fr; } }
+
+  .col-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: #aaa; margin-bottom: 10px; font-weight: 600;
+  }
+
+  .note {
+    font-size: 12px; color: #888; margin-top: 10px;
+    background: #f9f9f9; border-radius: 6px; padding: 8px 10px;
+    border-left: 3px solid #ddd;
+    max-width: 340px; margin-left: auto; margin-right: auto;
+  }
+  .note strong { color: #555; }
+</style>
+
+<h2>Combined — A's card + B's "add leg"</h2>
+<p class="subtitle">Purple card between stops · grey dashed "add leg" below each stop</p>
+
+<div class="cols" style="margin-top: 20px;">
+
+  <!-- LEFT: one transport leg -->
+  <div>
+    <div class="col-label">With one transport leg</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">✈️ CDG — Paris</div>
+          <div class="stop-meta">stop 1</div>
+        </div>
+      </div>
+
+      <!-- Option B: grey add-leg under first stop -->
+      <div class="add-leg"><button>＋ add leg after Paris</button></div>
+
+      <!-- Option A: purple transport card between stops -->
+      <div class="transport-between">
+        <span class="method">✈️</span>
+        <div class="info">
+          <div class="route">Paris → Rome</div>
+          <div class="time">10:00 → 13:30 · 3h 30m</div>
+        </div>
+        <span class="status-dot not-booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🏛 Rome city centre</div>
+          <div class="stop-meta">stop 2</div>
+        </div>
+      </div>
+      <!-- add leg under last stop too -->
+      <div class="add-leg"><button>＋ add leg after Rome</button></div>
+
+    </div>
+    <div class="note">
+      <strong>Add leg after Paris</strong> → opens modal pre-filled with Paris as departure, you pick destination + details
+    </div>
+  </div>
+
+  <!-- RIGHT: multiple stops, mixed -->
+  <div>
+    <div class="col-label">Multiple stops, no leg yet</div>
+    <div class="day-card">
+      <div class="day-header">Day 5 · Wed 16 Apr</div>
+
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🚂 Roma Termini</div>
+          <div class="stop-meta">stop 1</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Roma Termini</button></div>
+
+      <!-- transport: train -->
+      <div class="transport-between">
+        <span class="method">🚆</span>
+        <div class="info">
+          <div class="route">Rome → Florence</div>
+          <div class="time">09:15 → 10:50 · 1h 35m</div>
+        </div>
+        <span class="status-dot booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🌸 Firenze SMN</div>
+          <div class="stop-meta">stop 2</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Firenze</button></div>
+
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🏙 Florence centre</div>
+          <div class="stop-meta">stop 3</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Florence centre</button></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="note">
+      No leg between Firenze and Florence centre — button stays visible so you can add one anytime
+    </div>
+  </div>
+
+</div>
