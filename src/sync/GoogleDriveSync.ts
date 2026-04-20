@@ -42,7 +42,7 @@ export function requestSignIn(onConnected?: () => void): void {
       }
     },
   })
-  tokenClient.requestAccessToken({ prompt: 'consent' })
+  tokenClient?.requestAccessToken({ prompt: 'consent' })
 }
 
 export function signOut(): void {
