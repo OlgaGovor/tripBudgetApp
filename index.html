@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      var redirect = sessionStorage.getItem('spa-redirect');
+      if (redirect) {
+        sessionStorage.removeItem('spa-redirect');
+        window.history.replaceState(null, '', '/your-repo-name' + redirect);
+      }
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/your-repo-name/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TripBudget</title>
+    <script type="module" crossorigin src="/your-repo-name/assets/index-BewH8Fld.js"></script>
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/db-nTK_P-vv.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-BJoMtgfR-DNuz2DSJ.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-DgbT0exM-DSPkqEu0.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-ZjP4CjeZ-DYzu8JLJ.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-9VcRUwdB-BboIaBOH.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-Cl0B-RWe-CuDjv2NV.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-C53feagD-BZIk4_y7.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-C59ryAuS-QDIDIVai.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-CBzELu-H-DXwDr0bc.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-D13Eaw-8-CWFGA4dp.js">
+    <link rel="modulepreload" crossorigin href="/your-repo-name/assets/p-CU1SSH8_-DiyXRLlf.js">
+    <link rel="stylesheet" crossorigin href="/your-repo-name/assets/index-vosXVgyR.css">
+  <link rel="manifest" href="/your-repo-name/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/your-repo-name/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </body>
+</html>
