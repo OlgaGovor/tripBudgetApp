@@ -1,18 +1,25 @@
+// src/features/planner/components/DayCard.tsx
 import { useState } from 'react'
 import { IonButton, IonIcon } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline, addOutline } from 'ionicons/icons'
-import type { Accommodation, Day, TransportLeg } from '../../../db/schema'
+import { useLiveQuery } from 'dexie-react-hooks'
+import type { Accommodation, Day, Stop, TransportLeg } from '../../../db/schema'
+import { db } from '../../../db/db'
 import { useStops } from '../hooks/useStops'
 import { DayRepository } from '../../../db/repositories/DayRepository'
 import { StopRepository } from '../../../db/repositories/StopRepository'
 import { getDayCardStatus, DAY_CARD_COLORS } from '../../../lib/budget'
 import StopItem from './StopItem'
-import AccommodationBlock from './AccommodationBlock'
+import TransportCard from './TransportCard'
+import AccommodationDayCard from './AccommodationDayCard'
 import StopFormModal from './StopFormModal'
-import AccommodationFormModal from './AccommodationFormModal'
+import TransportLegFormModal from './TransportLegFormModal'
 
 const METHOD_ICONS: Record<TransportLeg['method'], string> = {
   car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+}
+const STATUS_COLORS: Record<TransportLeg['status'], string> = {
+  not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
 }
 
 interface Props {
@@ -25,6 +32,12 @@ interface Props {
   cumulativeSpent?: number
   effectiveDailyBudget?: number
   currency?: string
+}
+
+function addDaysToDateStr(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
 }
 
 function formatDate(dateStr: string): string {
@@ -64,11 +77,53 @@ const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
   )
 }
 
-const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay, dailySpent = 0, cumulativeSpent = 0, effectiveDailyBudget, currency }) => {
+const InTransitCard: React.FC<{ leg: TransportLeg }> = ({ leg }) => {
+  const fromStop = useLiveQuery(() => db.stops.get(leg.fromStopId), [leg.fromStopId])
+  const toStop = useLiveQuery(() => db.stops.get(leg.toStopId), [leg.toStopId])
+  const arrTime = leg.arrivalDateTime?.slice(11, 16)
+  return (
+    <div style={{
+      margin: '8px 10px 5px', padding: '7px 10px',
+      background: 'rgba(155,89,182,0.08)', borderRadius: 6,
+      borderLeft: '3px solid #9b59b6',
+      display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem',
+    }}>
+      <span style={{ fontSize: '1rem', flexShrink: 0 }}>{METHOD_ICONS[leg.method]}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, color: '#444' }}>
+          In transit · {fromStop?.placeName ?? '…'} → {toStop?.placeName ?? '…'}
+        </div>
+        {arrTime && <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 1 }}>arrives {arrTime}</div>}
+      </div>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[leg.status], flexShrink: 0 }} />
+    </div>
+  )
+}
+
+const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpent = 0, cumulativeSpent = 0, effectiveDailyBudget, currency }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [showStopForm, setShowStopForm] = useState(false)
-  const [showAccomForm, setShowAccomForm] = useState(false)
+  const [addLegFromStopId, setAddLegFromStopId] = useState<string | null>(null)
   const { stops } = useStops(day.id)
+
+  const nearbyStops = useLiveQuery<Array<{ stop: Stop; dayNumber: number }>>(
+    async () => {
+      const endDate = addDaysToDateStr(day.date, 3)
+      const nearbyDays = await db.days
+        .where('tripId').equals(tripId)
+        .filter(dd => dd.date >= day.date && dd.date <= endDate)
+        .sortBy('date')
+      const result: Array<{ stop: Stop; dayNumber: number }> = []
+      for (const nd of nearbyDays) {
+        const ndStops = await db.stops.where('dayId').equals(nd.id).sortBy('order')
+        for (const s of ndStops) {
+          result.push({ stop: s, dayNumber: nd.dayNumber })
+        }
+      }
+      return result
+    },
+    [tripId, day.date]
+  )
 
   const dayAccom = accommodations.find(a => a.id === day.accommodationId)
   const legsForStop = (stopId: string): TransportLeg[] =>
@@ -112,48 +167,48 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay
 
       {!collapsed && (
         <div style={{ paddingBottom: '0.5rem' }}>
-          {dayAccom
-            ? <AccommodationBlock accommodation={dayAccom} />
-            : !isLastDay && (
-              <IonButton fill="clear" size="small" style={{ marginLeft: '0.5rem' }} onClick={() => setShowAccomForm(true)}>
-                <IonIcon icon={addOutline} /> Add accommodation
-              </IonButton>
-            )
-          }
+          {inTransitLegs.map(leg => (
+            <InTransitCard key={leg.id} leg={leg} />
+          ))}
 
-          {inTransitLegs.map(leg => {
-            const isArrivalDay = leg.arrivalDateTime?.slice(0, 10) === day.date
+          {stops.map((stop, i) => {
+            const stopLegs = legsForStop(stop.id)
             return (
-              <div key={leg.id} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '0.4rem 1rem', background: 'rgba(155,89,182,0.1)', borderRadius: 8, margin: '0.25rem 1rem',
-                fontSize: '0.9rem',
-              }}>
-                <span>{METHOD_ICONS[leg.method]}</span>
-                <span style={{ flex: 1 }}>
-                  In transit
-                  {isArrivalDay && leg.arrivalDateTime && (
-                    <span style={{ fontSize: '0.8rem', marginLeft: 4, color: 'var(--ion-color-medium)' }}>
-                      · arrives {leg.arrivalDateTime.slice(11, 16)}
-                    </span>
-                  )}
-                </span>
+              <div key={stop.id}>
+                <StopItem
+                  stop={stop}
+                  tripId={tripId}
+                  legsFromThisStop={stopLegs}
+                  canMoveUp={i > 0}
+                  canMoveDown={i < stops.length - 1}
+                  onMoveUp={() => StopRepository.reorder(day.id, swapStops(i, i - 1))}
+                  onMoveDown={() => StopRepository.reorder(day.id, swapStops(i, i + 1))}
+                />
+                {stopLegs.length > 0
+                  ? stopLegs.map(leg => <TransportCard key={leg.id} leg={leg} />)
+                  : (
+                    <div style={{ margin: '4px 10px 7px' }}>
+                      <button
+                        onClick={() => setAddLegFromStopId(stop.id)}
+                        style={{
+                          fontSize: '0.75rem', color: '#bbb', background: 'none',
+                          border: '1px dashed #ddd', borderRadius: 10, padding: '3px 10px', cursor: 'pointer',
+                        }}
+                      >
+                        ＋ add leg after {stop.placeName}
+                      </button>
+                    </div>
+                  )
+                }
               </div>
             )
           })}
 
-          {stops.map((stop, i) => (
-            <StopItem
-              key={stop.id}
-              stop={stop}
-              tripId={tripId}
-              legsFromThisStop={legsForStop(stop.id)}
-              canMoveUp={i > 0}
-              canMoveDown={i < stops.length - 1}
-              onMoveUp={() => StopRepository.reorder(day.id, swapStops(i, i - 1))}
-              onMoveDown={() => StopRepository.reorder(day.id, swapStops(i, i + 1))}
-            />
-          ))}
+          <AccommodationDayCard
+            accommodation={dayAccom}
+            tripId={tripId}
+            initialDate={day.date}
+          />
 
           <IonButton fill="clear" size="small" style={{ marginLeft: '0.5rem' }} onClick={() => setShowStopForm(true)}>
             <IonIcon icon={addOutline} /> Add stop
@@ -164,7 +219,16 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay
       )}
 
       <StopFormModal isOpen={showStopForm} onDismiss={() => setShowStopForm(false)} tripId={tripId} dayId={day.id} />
-      <AccommodationFormModal isOpen={showAccomForm} onDismiss={() => setShowAccomForm(false)} tripId={tripId} initialDate={day.date} />
+      {addLegFromStopId && (
+        <TransportLegFormModal
+          isOpen={true}
+          onDismiss={() => setAddLegFromStopId(null)}
+          tripId={tripId}
+          fromStopId={addLegFromStopId}
+          nearbyStops={nearbyStops ?? []}
+          initialDate={day.date}
+        />
+      )}
     </div>
   )
 }
