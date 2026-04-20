@@ -5,8 +5,10 @@ import TripsPage from './features/trips/components/TripsPage'
 import TripShell from './components/TripShell'
 import SettingsPage from './features/settings/components/SettingsPage'
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || ''
+
 const App: React.FC = () => (
-  <IonReactRouter>
+  <IonReactRouter basename={basename}>
     <IonRouterOutlet>
       <Route exact path="/" component={TripsPage} />
       <Route path="/trips/:tripId" component={TripShell} />
