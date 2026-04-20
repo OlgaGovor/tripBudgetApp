@@ -6,6 +6,7 @@ import AccommodationDayCard from '../AccommodationDayCard'
 import type { Accommodation } from '../../../../db/schema'
 
 vi.mock('@ionic/react', () => ionicMock)
+vi.mock('../AccommodationFormModal', () => ({ default: () => null }))
 vi.mock('../../../../db/repositories/AccommodationRepository', () => ({
   AccommodationRepository: { delete: vi.fn() },
 }))
