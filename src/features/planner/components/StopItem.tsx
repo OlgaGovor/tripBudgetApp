@@ -31,7 +31,7 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, canMoveUp, 
   }
 
   return (
-    <div style={{ padding: '0.5rem 1rem', borderLeft: '3px solid var(--ion-color-primary)', marginLeft: '1rem', marginBottom: '0.5rem' }}>
+    <div style={{ margin: '5px 10px', padding: '7px 10px', background: '#f8f9ff', borderRadius: 6, borderLeft: '3px solid #3880ff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <span style={{ fontWeight: 600 }}>{stop.placeName}</span>
