@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from '../db'
 import type { Trip } from '../schema'
 import { DayRepository } from './DayRepository'
+import { notifyDataChanged } from '../../sync/SyncManager'
 
 type TripInput = Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>
 type TripUpdate = Partial<TripInput> & { id: string }
@@ -21,6 +22,7 @@ export const TripRepository = {
     const id = uuidv4()
     await db.trips.add({ ...input, id, createdAt: now, updatedAt: now })
     await DayRepository.generateForTrip(id, input.startDate, input.endDate)
+    notifyDataChanged(id)
     return id
   },
 
@@ -37,6 +39,7 @@ export const TripRepository = {
     } else {
       await db.trips.update(id, { ...rest, updatedAt: now })
     }
+    notifyDataChanged(id)
   },
 
   async delete(id: string): Promise<void> {
