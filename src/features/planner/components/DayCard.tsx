@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { IonButton, IonIcon } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline, addOutline } from 'ionicons/icons'
-import { useLiveQuery } from 'dexie-react-hooks'
-import type { Accommodation, Day, Stop, TransportLeg } from '../../../db/schema'
-import { db } from '../../../db/db'
+import type { Accommodation, Day, TransportLeg } from '../../../db/schema'
 import { useStops } from '../hooks/useStops'
 import { DayRepository } from '../../../db/repositories/DayRepository'
 import { StopRepository } from '../../../db/repositories/StopRepository'
@@ -27,12 +25,6 @@ interface Props {
   cumulativeSpent?: number
   effectiveDailyBudget?: number
   currency?: string
-}
-
-function addDaysToDateStr(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().slice(0, 10)
 }
 
 function formatDate(dateStr: string): string {
@@ -77,25 +69,6 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay
   const [showStopForm, setShowStopForm] = useState(false)
   const [showAccomForm, setShowAccomForm] = useState(false)
   const { stops } = useStops(day.id)
-
-  const nearbyStops = useLiveQuery<Array<{ stop: Stop; dayNumber: number }>>(
-    async () => {
-      const endDate = addDaysToDateStr(day.date, 3)
-      const nearbyDays = await db.days
-        .where('tripId').equals(tripId)
-        .filter(dd => dd.date >= day.date && dd.date <= endDate)
-        .sortBy('date')
-      const result: Array<{ stop: Stop; dayNumber: number }> = []
-      for (const nd of nearbyDays) {
-        const ndStops = await db.stops.where('dayId').equals(nd.id).sortBy('order')
-        for (const s of ndStops) {
-          result.push({ stop: s, dayNumber: nd.dayNumber })
-        }
-      }
-      return result
-    },
-    [tripId, day.date]
-  )
 
   const dayAccom = accommodations.find(a => a.id === day.accommodationId)
   const legsForStop = (stopId: string): TransportLeg[] =>
@@ -175,8 +148,6 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, isLastDay
               stop={stop}
               tripId={tripId}
               legsFromThisStop={legsForStop(stop.id)}
-              nearbyStops={nearbyStops ?? []}
-              dayDate={day.date}
               canMoveUp={i > 0}
               canMoveDown={i < stops.length - 1}
               onMoveUp={() => StopRepository.reorder(day.id, swapStops(i, i - 1))}
