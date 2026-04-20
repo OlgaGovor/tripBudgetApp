@@ -1,0 +1,238 @@
+<style>
+  .day-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .day-header {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #555;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .stop {
+    display: flex;
+    align-items: stretch;
+    border-left: 3px solid #3880ff;
+    margin: 8px 10px;
+    border-radius: 4px;
+    background: #f8f9ff;
+    overflow: hidden;
+  }
+  .stop-body {
+    padding: 8px 10px;
+    flex: 1;
+  }
+  .stop-name { font-weight: 600; color: #222; }
+  .stop-meta { font-size: 11px; color: #999; margin-top: 2px; }
+  .stop-actions { display: flex; gap: 4px; margin-top: 4px; }
+  .btn-tiny {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid #ddd;
+    background: #fff; cursor: pointer; color: #555;
+  }
+  .btn-add {
+    font-size: 11px; padding: 3px 8px; border-radius: 4px;
+    border: 1px dashed #3880ff; background: #f0f4ff;
+    cursor: pointer; color: #3880ff; margin: 2px 10px 8px;
+    display: inline-block;
+  }
+
+  /* Current: transport nested under stop */
+  .transport-nested {
+    margin: 0 10px 2px 10px;
+    padding: 5px 8px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+  }
+  .transport-nested .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #e74c3c; flex-shrink: 0;
+  }
+
+  /* Option A: between stops, purple card */
+  .transport-between {
+    margin: 4px 10px;
+    padding: 7px 10px;
+    background: rgba(155,89,182,0.08);
+    border-radius: 6px;
+    border-left: 3px solid #9b59b6;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #555;
+  }
+  .transport-between .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #e74c3c; flex-shrink: 0;
+  }
+  .transport-between .method { font-size: 16px; }
+
+  /* Option B: timeline connector */
+  .timeline-connector {
+    display: flex; align-items: center;
+    margin: 0 16px;
+    gap: 0;
+  }
+  .tl-line { flex: 1; height: 2px; background: #ddd; }
+  .tl-card {
+    padding: 5px 10px;
+    background: rgba(155,89,182,0.1);
+    border: 1px solid rgba(155,89,182,0.3);
+    border-radius: 20px;
+    font-size: 11px; color: #7d3c98;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .add-between {
+    text-align: center; margin: 2px 10px;
+    font-size: 11px; color: #aaa;
+  }
+  .add-between span {
+    border: 1px dashed #ccc; border-radius: 10px; padding: 2px 10px; cursor: pointer;
+    background: #fafafa;
+  }
+  .add-between span:hover { background: #f0f4ff; color: #3880ff; border-color: #3880ff; }
+
+  .label-tag {
+    display: inline-block; font-size: 10px; padding: 1px 5px;
+    border-radius: 3px; background: #e8f0fe; color: #3880ff;
+    font-weight: 600; margin-left: 4px;
+  }
+  .label-tag.purple { background: #f3e5f5; color: #7b1fa2; }
+
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+  .badge-now { display: inline-block; font-size: 10px; background: #e74c3c; color: #fff; border-radius: 3px; padding: 1px 5px; margin-left: 4px; }
+</style>
+
+<h2>Transport layout — 3 approaches</h2>
+<p class="subtitle">All show the same data: Day 3, two stops (Paris → Rome), one flight between them</p>
+
+<div class="split">
+
+  <!-- CURRENT -->
+  <div class="cards">
+    <div class="card" data-choice="current" onclick="toggleSelect(this)">
+      <div class="card-image">
+        <div class="section-title">Current <span class="badge-now">now</span></div>
+        <div class="day-card">
+          <div class="day-header">Day 3 · Mon 14 Apr</div>
+          <div class="stop">
+            <div class="stop-body">
+              <div class="stop-name">✈️ CDG — Paris</div>
+              <div class="stop-meta">stop 1</div>
+            </div>
+          </div>
+          <!-- transport nested under departure stop -->
+          <div class="transport-nested">
+            <span>✈️</span>
+            <span>10:00 → 13:30</span>
+            <span style="color:#999">→ FCO</span>
+            <span class="dot"></span>
+            <span style="margin-left:auto; font-size:10px; color:#aaa">✏️ 🗑</span>
+          </div>
+          <div class="stop">
+            <div class="stop-body">
+              <div class="stop-name">🏛 Rome city centre</div>
+              <div class="stop-meta">stop 2</div>
+            </div>
+          </div>
+          <div class="btn-add">+ Add transport from here</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Current</h3>
+        <p>Transport lives under its departure stop. "Add" is on the origin. Hard to see at a glance which leg goes where.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION A: between stops, purple card -->
+  <div class="cards">
+    <div class="card" data-choice="A" onclick="toggleSelect(this)">
+      <div class="card-image">
+        <div class="section-title">Option A — between stops</div>
+        <div class="day-card">
+          <div class="day-header">Day 3 · Mon 14 Apr</div>
+          <div class="stop">
+            <div class="stop-body">
+              <div class="stop-name">✈️ CDG — Paris</div>
+              <div class="stop-meta">stop 1</div>
+            </div>
+          </div>
+          <!-- transport between stops, same purple card as overnight -->
+          <div class="transport-between">
+            <span class="method">✈️</span>
+            <div style="flex:1">
+              <div style="font-weight:600; color:#444">Paris → Rome</div>
+              <div style="font-size:11px; color:#999">10:00 → 13:30 · 3h 30m</div>
+            </div>
+            <span class="dot"></span>
+            <span style="font-size:11px; color:#aaa">✏️ 🗑</span>
+          </div>
+          <div class="stop">
+            <div class="stop-body">
+              <div class="stop-name">🏛 Rome city centre</div>
+              <div class="stop-meta">stop 2</div>
+              <div class="stop-actions">
+                <span class="btn-tiny">+ arrived here by…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Option A — between stops</h3>
+        <p>Transport card sits between departure and arrival stops. Consistent purple style. "Add transport" is on the <em>arrival</em> stop ("arrived here by…").</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B: timeline pill connector -->
+  <div class="cards">
+    <div class="card" data-choice="B" onclick="toggleSelect(this)">
+      <div class="card-image">
+        <div class="section-title">Option B — timeline pill</div>
+        <div class="day-card">
+          <div class="day-header">Day 3 · Mon 14 Apr</div>
+          <div class="stop">
+            <div class="stop-body">
+              <div class="stop-name">✈️ CDG — Paris</div>
+              <div class="stop-meta">stop 1</div>
+            </div>
+          </div>
+          <!-- pill connector between stops -->
+          <div class="timeline-connector">
+            <div class="tl-line"></div>
+            <div class="tl-card">✈️ 10:00 → 13:30 <span class="dot" style="width:6px;height:6px;border-radius:50%;background:#e74c3c;display:inline-block;margin-left:4px"></span></div>
+            <div class="tl-line"></div>
+          </div>
+          <div class="stop">
+            <div class="stop-body">
+              <div class="stop-name">🏛 Rome city centre</div>
+              <div class="stop-meta">stop 2</div>
+            </div>
+          </div>
+          <!-- add between any two stops -->
+          <div class="add-between"><span>＋ add leg after Rome</span></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Option B — timeline pill</h3>
+        <p>Compact horizontal pill connector between stops. "Add leg" appears below any stop. Feels like a journey timeline.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Click your preferred direction — or tell me in the terminal what you like / dislike about each.</p>

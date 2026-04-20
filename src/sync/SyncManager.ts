@@ -25,7 +25,7 @@ function setStatus(s: SyncStatus) {
 export function notifyDataChanged(tripId?: string): void {
   if (!isSignedIn()) return
   if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => uploadTrip(tripId), 30_000)
+  debounceTimer = setTimeout(() => uploadTrip(tripId), 3_000)
 }
 
 async function canSync(): Promise<boolean> {
@@ -37,6 +37,33 @@ async function canSync(): Promise<boolean> {
     if (conn && conn.type && conn.type !== 'wifi') return false
   }
   return true
+}
+
+export async function syncNow(): Promise<void> {
+  if (!isSignedIn()) return
+  setStatus('syncing')
+  try {
+    const { importTrip } = await import('../lib/exportImport')
+    const trips = await db.trips.toArray()
+    for (const t of trips) {
+      const json = await exportTrip(t.id)
+      await uploadFile(`trip_${t.id}.json`, json)
+    }
+    const filenames = await listTripFiles()
+    const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
+    for (const filename of tripFiles) {
+      const json = await downloadFile(filename)
+      if (!json) continue
+      const bundle = JSON.parse(json)
+      const local = await db.trips.get(bundle.trip?.id)
+      if (local && local.updatedAt >= bundle.trip.updatedAt) continue
+      await importTrip(json, 'replace')
+    }
+    await SettingsRepository.update({ lastSyncedAt: new Date().toISOString() })
+    setStatus('synced')
+  } catch {
+    setStatus(navigator.onLine ? 'error' : 'offline')
+  }
 }
 
 export async function uploadTrip(tripId?: string): Promise<void> {
@@ -66,12 +93,14 @@ export async function downloadAll(): Promise<void> {
   try {
     const filenames = await listTripFiles()
     const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
+    const { importTrip } = await import('../lib/exportImport')
     for (const filename of tripFiles) {
       const json = await downloadFile(filename)
-      if (json) {
-        const { importTrip } = await import('../lib/exportImport')
-        await importTrip(json, 'replace')
-      }
+      if (!json) continue
+      const bundle = JSON.parse(json)
+      const local = await db.trips.get(bundle.trip?.id)
+      if (local && local.updatedAt >= bundle.trip.updatedAt) continue
+      await importTrip(json, 'replace')
     }
     await SettingsRepository.update({ lastSyncedAt: new Date().toISOString() })
     setStatus('synced')

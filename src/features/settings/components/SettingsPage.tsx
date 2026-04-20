@@ -8,7 +8,7 @@ import { useHistory } from 'react-router-dom'
 import { SettingsRepository } from '../../../db/repositories/SettingsRepository'
 import { ExpenseCategoryRepository } from '../../../db/repositories/ExpenseCategoryRepository'
 import { requestSignIn, signOut } from '../../../sync/GoogleDriveSync'
-import { uploadTrip } from '../../../sync/SyncManager'
+import { syncNow, downloadAll } from '../../../sync/SyncManager'
 import CategoryEditor from './CategoryEditor'
 import DataManagementSection from './DataManagementSection'
 
@@ -44,7 +44,7 @@ const SettingsPage: React.FC = () => {
             <IonLabel>{settings.googleConnected ? 'Google Drive connected' : 'Google Drive'}</IonLabel>
             {settings.googleConnected
               ? <IonButton slot="end" fill="outline" color="danger" onClick={async () => { signOut(); await SettingsRepository.update({ googleConnected: false }) }}>Sign out</IonButton>
-              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => { await SettingsRepository.update({ googleConnected: true }) })}>Sign in</IonButton>
+              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => { await SettingsRepository.update({ googleConnected: true }); await downloadAll() })}>Sign in</IonButton>
             }
           </IonItem>
           {settings.lastSyncedAt && (
@@ -64,7 +64,7 @@ const SettingsPage: React.FC = () => {
               <IonSelectOption value="manual">Manual only</IonSelectOption>
             </IonSelect>
           </IonItem>
-          <IonItem button onClick={() => uploadTrip()} disabled={!settings.googleConnected}>
+          <IonItem button onClick={() => syncNow()} disabled={!settings.googleConnected}>
             <IonLabel>Sync now</IonLabel>
           </IonItem>
         </IonList>
