@@ -203,12 +203,6 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
             )
           })}
 
-          <AccommodationDayCard
-            accommodation={dayAccom}
-            tripId={tripId}
-            initialDate={day.date}
-          />
-
           <div
             onClick={() => setShowStopForm(true)}
             style={{
@@ -220,6 +214,12 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
             <span style={{ fontSize: '1rem', opacity: 0.4 }}>📍</span>
             <span style={{ color: '#3880ff', fontWeight: 500 }}>＋ Add stop</span>
           </div>
+
+          <AccommodationDayCard
+            accommodation={dayAccom}
+            tripId={tripId}
+            initialDate={day.date}
+          />
 
           <NoteSection day={day} />
         </div>
