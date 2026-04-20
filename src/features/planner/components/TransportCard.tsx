@@ -26,6 +26,10 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
   const arr = leg.arrivalDateTime?.slice(11, 16)
   const timeStr = dep && arr ? `${dep} → ${arr}${overnight ? ' next day' : ''}` : (dep ?? '')
 
+  async function handleDelete() {
+    await TransportLegRepository.delete(leg.id)
+  }
+
   return (
     <>
       <div style={{
@@ -50,7 +54,7 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
         <IonButton fill="clear" size="small" onClick={() => setShowEdit(true)}>
           <IonIcon icon={pencilOutline} />
         </IonButton>
-        <IonButton fill="clear" size="small" color="danger" onClick={() => TransportLegRepository.delete(leg.id)}>
+        <IonButton fill="clear" size="small" color="danger" onClick={handleDelete}>
           <IonIcon icon={trashOutline} />
         </IonButton>
       </div>
