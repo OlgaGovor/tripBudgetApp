@@ -1,6 +1,7 @@
 import {
   IonContent, IonFab, IonFabButton, IonHeader, IonIcon,
   IonPage, IonTitle, IonToolbar, IonButtons, IonButton,
+  useIonAlert,
 } from '@ionic/react'
 import { add, settingsOutline } from 'ionicons/icons'
 import { useState, useEffect } from 'react'
@@ -9,6 +10,7 @@ import { useTrips } from '../hooks/useTrips'
 import TripCard from './TripCard'
 import TripFormModal from './TripFormModal'
 import SyncStatusBadge from '../../../components/SyncStatusBadge'
+import { TripRepository } from '../../../db/repositories/TripRepository'
 import type { Trip } from '../../../db/schema'
 
 const TripsPage: React.FC = () => {
@@ -16,7 +18,19 @@ const TripsPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingTrip, setEditingTrip] = useState<Trip | undefined>()
   const [offline, setOffline] = useState(!navigator.onLine)
+  const [present] = useIonAlert()
   const history = useHistory()
+
+  function confirmDelete(trip: Trip) {
+    present({
+      header: 'Delete trip',
+      message: `Delete "${trip.name}"? This will permanently remove all days, stops, expenses, and packing items.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Delete', role: 'destructive', handler: () => TripRepository.delete(trip.id) },
+      ],
+    })
+  }
 
   useEffect(() => {
     const on = () => setOffline(false)
@@ -56,6 +70,7 @@ const TripsPage: React.FC = () => {
             trip={trip}
             onClick={() => history.push(`/trips/${trip.id}/plan`)}
             onEdit={() => setEditingTrip(trip)}
+            onDelete={() => confirmDelete(trip)}
           />
         ))}
       </IonContent>

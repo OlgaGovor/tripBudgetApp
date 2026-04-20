@@ -10,27 +10,49 @@ import { usePacking } from '../hooks/usePacking'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import { PackingRepository } from '../../../db/repositories/PackingRepository'
 import PackingItemRow from './PackingItemRow'
+import type { PackingItem } from '../../../db/schema'
 
 const PackingPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const history = useHistory()
   const { items } = usePacking(tripId)
   const trips = TripRepository.useAll() ?? []
+  const [editingItem, setEditingItem] = useState<PackingItem | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [label, setLabel] = useState('')
   const [weight, setWeight] = useState('')
 
   const totalGrams = items.reduce((s, i) => s + (i.weightGrams ?? 0), 0)
   const checkedCount = items.filter(i => i.checked).length
+  const modalOpen = showAdd || !!editingItem
 
-  async function handleAdd() {
+  function openAdd() {
+    setLabel(''); setWeight(''); setEditingItem(null); setShowAdd(true)
+  }
+
+  function openEdit(item: PackingItem) {
+    setLabel(item.label); setWeight(item.weightGrams ? String(item.weightGrams) : ''); setEditingItem(item); setShowAdd(false)
+  }
+
+  function closeModal() {
+    setShowAdd(false); setEditingItem(null); setLabel(''); setWeight('')
+  }
+
+  async function handleSave() {
     if (!label.trim()) return
-    await PackingRepository.create({
-      tripId, label: label.trim(), checked: false,
-      order: items.length,
-      weightGrams: parseInt(weight) || undefined,
-    })
-    setLabel(''); setWeight(''); setShowAdd(false)
+    if (editingItem) {
+      await PackingRepository.update(editingItem.id, {
+        label: label.trim(),
+        weightGrams: parseInt(weight) || undefined,
+      })
+    } else {
+      await PackingRepository.create({
+        tripId, label: label.trim(), checked: false,
+        order: items.length,
+        weightGrams: parseInt(weight) || undefined,
+      })
+    }
+    closeModal()
   }
 
   async function handleCopyFromTrip(sourceTripId: string) {
@@ -61,18 +83,19 @@ const PackingPage: React.FC = () => {
         {items.length === 0 && (
           <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--ion-color-medium)' }}>No items yet</p>
         )}
-        {items.map(item => <PackingItemRow key={item.id} item={item} />)}
+        {items.map(item => <PackingItemRow key={item.id} item={item} onEdit={openEdit} />)}
         <div style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--ion-color-medium)', textAlign: 'right' }}>
           {checkedCount}/{items.length} packed · {(totalGrams / 1000).toFixed(1)} kg total
         </div>
       </IonContent>
       <IonFab vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton onClick={() => setShowAdd(true)}><IonIcon icon={add} /></IonFabButton>
+        <IonFabButton onClick={openAdd}><IonIcon icon={add} /></IonFabButton>
       </IonFab>
-      <IonModal isOpen={showAdd} onDidDismiss={() => setShowAdd(false)} breakpoints={[0, 0.4]} initialBreakpoint={0.4}>
+      <IonModal isOpen={modalOpen} onDidDismiss={closeModal} breakpoints={[0, 0.4]} initialBreakpoint={0.4}>
         <IonHeader><IonToolbar>
-          <IonTitle>Add item</IonTitle>
-          <IonButtons slot="end"><IonButton strong onClick={handleAdd} disabled={!label.trim()}>Add</IonButton></IonButtons>
+          <IonButtons slot="start"><IonButton onClick={closeModal}>Cancel</IonButton></IonButtons>
+          <IonTitle>{editingItem ? 'Edit item' : 'Add item'}</IonTitle>
+          <IonButtons slot="end"><IonButton strong onClick={handleSave} disabled={!label.trim()}>{editingItem ? 'Save' : 'Add'}</IonButton></IonButtons>
         </IonToolbar></IonHeader>
         <IonContent className="ion-padding">
           <IonItem>

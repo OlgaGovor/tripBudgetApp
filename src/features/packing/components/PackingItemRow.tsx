@@ -1,11 +1,11 @@
 import { IonIcon, IonButton } from '@ionic/react'
-import { trashOutline } from 'ionicons/icons'
+import { trashOutline, pencilOutline } from 'ionicons/icons'
 import type { PackingItem } from '../../../db/schema'
 import { PackingRepository } from '../../../db/repositories/PackingRepository'
 
-interface Props { item: PackingItem }
+interface Props { item: PackingItem; onEdit: (item: PackingItem) => void }
 
-const PackingItemRow: React.FC<Props> = ({ item }) => (
+const PackingItemRow: React.FC<Props> = ({ item, onEdit }) => (
   <div style={{
     display: 'flex', alignItems: 'center', gap: 10,
     padding: '0.6rem 1rem',
@@ -26,6 +26,9 @@ const PackingItemRow: React.FC<Props> = ({ item }) => (
         {item.weightGrams}g
       </span>
     )}
+    <IonButton fill="clear" size="small" onClick={() => onEdit(item)}>
+      <IonIcon icon={pencilOutline} />
+    </IonButton>
     <IonButton fill="clear" size="small" color="danger" onClick={() => PackingRepository.delete(item.id)}>
       <IonIcon icon={trashOutline} />
     </IonButton>
