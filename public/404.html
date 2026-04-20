@@ -4,7 +4,7 @@
     <script>
       // Redirect GitHub Pages 404s back to index.html, preserving the path
       var path = window.location.pathname;
-      var base = '/your-repo-name';
+      var base = '/tripBudgetApp';
       var rest = path.slice(base.length) || '/';
       sessionStorage.setItem('spa-redirect', rest + window.location.search + window.location.hash);
       window.location.replace(base + '/');
