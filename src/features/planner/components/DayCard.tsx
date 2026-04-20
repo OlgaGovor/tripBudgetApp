@@ -1,7 +1,7 @@
 // src/features/planner/components/DayCard.tsx
 import { useState } from 'react'
-import { IonButton, IonIcon } from '@ionic/react'
-import { chevronDownOutline, chevronUpOutline, addOutline } from 'ionicons/icons'
+import { IonIcon } from '@ionic/react'
+import { chevronDownOutline, chevronUpOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Accommodation, Day, Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
@@ -209,9 +209,17 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
             initialDate={day.date}
           />
 
-          <IonButton fill="clear" size="small" style={{ marginLeft: '0.5rem' }} onClick={() => setShowStopForm(true)}>
-            <IonIcon icon={addOutline} /> Add stop
-          </IonButton>
+          <div
+            onClick={() => setShowStopForm(true)}
+            style={{
+              margin: '5px 10px', padding: '7px 10px',
+              borderRadius: 6, border: '1px dashed #b3c6ff', borderLeft: '3px solid #b3c6ff',
+              display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '1rem', opacity: 0.4 }}>📍</span>
+            <span style={{ color: '#3880ff', fontWeight: 500 }}>＋ Add stop</span>
+          </div>
 
           <NoteSection day={day} />
         </div>
