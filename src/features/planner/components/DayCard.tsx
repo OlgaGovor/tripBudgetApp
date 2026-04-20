@@ -27,7 +27,6 @@ interface Props {
   tripId: string
   legs: TransportLeg[]
   accommodations: Accommodation[]
-  isLastDay?: boolean
   dailySpent?: number
   cumulativeSpent?: number
   effectiveDailyBudget?: number

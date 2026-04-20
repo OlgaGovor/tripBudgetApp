@@ -4,7 +4,7 @@ import { vi, describe, it, expect } from 'vitest'
 import { ionicMock } from '../../../../components/__mocks__/ionic'
 import DayCard from '../DayCard'
 import type { Day, Stop, TransportLeg, Accommodation } from '../../../../db/schema'
-import { StopRepository } from '../../../../db/repositories/StopRepository'
+import { useStops } from '../../hooks/useStops'
 
 vi.mock('@ionic/react', () => ionicMock)
 vi.mock('../StopItem', () => ({ default: () => <div data-testid="stop-item" /> }))
@@ -14,8 +14,11 @@ vi.mock('../AccommodationDayCard', () => ({ default: ({ accommodation }: any) =>
 }))
 vi.mock('../StopFormModal', () => ({ default: () => null }))
 vi.mock('../TransportLegFormModal', () => ({ default: () => null }))
+vi.mock('../../hooks/useStops', () => ({
+  useStops: vi.fn(() => ({ stops: [] })),
+}))
 vi.mock('../../../../db/repositories/StopRepository', () => ({
-  StopRepository: { useByDayId: vi.fn(() => []), reorder: vi.fn() },
+  StopRepository: { reorder: vi.fn() },
 }))
 vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: () => undefined,
@@ -23,7 +26,7 @@ vi.mock('dexie-react-hooks', () => ({
 vi.mock('../../../../db/db', () => ({
   db: {
     days: { where: () => ({ filter: () => ({ sortBy: () => Promise.resolve([]) }) }) },
-    stops: { where: () => ({ dayId: () => ({ sortBy: () => Promise.resolve([]) }) }) },
+    stops: { where: () => ({ equals: () => ({ sortBy: () => Promise.resolve([]) }) }) },
   },
 }))
 
@@ -64,13 +67,13 @@ describe('DayCard', () => {
   })
 
   it('shows add-leg button for a stop with no departing leg', () => {
-    vi.mocked(StopRepository.useByDayId).mockReturnValue([STOP])
+    vi.mocked(useStops).mockReturnValue({ stops: [STOP] })
     render(<DayCard day={DAY} tripId="trip1" legs={[]} accommodations={[]} />)
     expect(screen.getByText(/add leg after Paris/)).toBeInTheDocument()
   })
 
   it('shows TransportCard for a stop that has a departing leg', () => {
-    vi.mocked(StopRepository.useByDayId).mockReturnValue([STOP])
+    vi.mocked(useStops).mockReturnValue({ stops: [STOP] })
     render(<DayCard day={DAY} tripId="trip1" legs={[LEG_SAME_DAY]} accommodations={[]} />)
     expect(screen.getByTestId('transport-card')).toBeInTheDocument()
     expect(screen.queryByText(/add leg after Paris/)).not.toBeInTheDocument()

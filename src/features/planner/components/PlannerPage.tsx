@@ -53,14 +53,13 @@ const PlannerPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        {days.map((day, i) => (
+        {days.map((day) => (
           <DayCard
             key={day.id}
             day={day}
             tripId={tripId}
             legs={legs}
             accommodations={accommodations}
-            isLastDay={i === days.length - 1}
             dailySpent={spentByDate[day.date] ?? 0}
             cumulativeSpent={cumulativeByDayId[day.id] ?? 0}
             effectiveDailyBudget={effectiveDailyBudget}
