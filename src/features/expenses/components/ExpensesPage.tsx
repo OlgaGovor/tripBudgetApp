@@ -4,7 +4,7 @@ import {
   IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList,
   IonButtons, IonButton,
 } from '@ionic/react'
-import { add, homeOutline } from 'ionicons/icons'
+import { add, homeOutline, trashOutline } from 'ionicons/icons'
 import { useParams, useHistory } from 'react-router-dom'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import { ExpenseRepository } from '../../../db/repositories/ExpenseRepository'
@@ -82,15 +82,27 @@ const ExpensesPage: React.FC = () => {
                     {catItems.map(e => (
                       <IonItem key={e.id} lines="none" button onClick={() => { setEditExpense(e); setShowForm(true) }}>
                         <IonLabel>
-                          {e.note && <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--ion-color-dark)' }}>{e.note}</p>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {e.accommodationId && <span style={{ fontSize: '0.85rem' }}>🏨</span>}
+                            {e.transportLegId && <span style={{ fontSize: '0.85rem' }}>🚌</span>}
+                            {e.note && <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--ion-color-dark)' }}>{e.note}</p>}
+                          </div>
                         </IonLabel>
-                        <div slot="end" style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 600 }}>{e.amount.toFixed(2)} {e.currency}</div>
-                          {e.currency !== trip.defaultCurrency && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--ion-color-medium)' }}>
-                              {e.amountConverted.toFixed(2)} {trip.defaultCurrency}
-                            </div>
-                          )}
+                        <div slot="end" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 600 }}>{e.amount.toFixed(2)} {e.currency}</div>
+                            {e.currency !== trip.defaultCurrency && (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--ion-color-medium)' }}>
+                                {e.amountConverted.toFixed(2)} {trip.defaultCurrency}
+                              </div>
+                            )}
+                          </div>
+                          <IonButton
+                            fill="clear" size="small" color="danger"
+                            onClick={ev => { ev.stopPropagation(); ExpenseRepository.delete(e.id) }}
+                          >
+                            <IonIcon icon={trashOutline} />
+                          </IonButton>
                         </div>
                       </IonItem>
                     ))}
