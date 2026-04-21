@@ -29,32 +29,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Generate PWA icons
-        run: |
-          node -e "
-          const fs = require('fs');
-          function pngIcon(size) {
-            // Minimal valid PNG: blue square with 'TB' text approximated as solid color
-            const { createCanvas } = require('canvas');
-            return null; // fallback below
-          }
-          // Write a minimal blue square SVG and convert via sharp if available,
-          // otherwise write a 1x1 transparent PNG as placeholder
-          const svg192 = \`<svg xmlns='http://www.w3.org/2000/svg' width='192' height='192'><rect width='192' height='192' rx='24' fill='#3880ff'/><text x='96' y='120' font-size='80' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>TB</text></svg>\`;
-          const svg512 = \`<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='512' height='512' rx='64' fill='#3880ff'/><text x='256' y='320' font-size='210' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>TB</text></svg>\`;
-          fs.writeFileSync('public/icon-192.svg', svg192);
-          fs.writeFileSync('public/icon-512.svg', svg512);
-          "
-          npm install --no-save sharp
-          node -e "
-          const sharp = require('sharp');
-          const fs = require('fs');
-          Promise.all([
-            sharp(Buffer.from(fs.readFileSync('public/icon-192.svg'))).png().toFile('public/icon-192.png'),
-            sharp(Buffer.from(fs.readFileSync('public/icon-512.svg'))).png().toFile('public/icon-512.png'),
-          ]).then(() => console.log('Icons generated'));
-          "
-
       - run: npm run build
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
