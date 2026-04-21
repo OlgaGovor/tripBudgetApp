@@ -36,6 +36,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
   const [lng, setLng] = useState<number | undefined>()
   const [selectedStopId, setSelectedStopId] = useState<string | undefined>()
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
+  const [showHotelSearch, setShowHotelSearch] = useState(false)
   const [showCurrencySelect, setShowCurrencySelect] = useState(false)
   const [price, setPrice] = useState('')
   const [priceCurrency, setPriceCurrency] = useState('')
@@ -116,7 +117,44 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
           <div>
             <IonItem>
               <IonLabel position="stacked">Name *</IonLabel>
-              <IonInput value={name} onIonInput={e => setName(e.detail.value ?? '')} placeholder="e.g. Hotel Granvia" />
+              <div style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+                <IonInput value={name} onIonInput={e => setName(e.detail.value ?? '')} placeholder="e.g. Hotel Granvia" style={{ flex: 1 }} />
+                <IonButton fill="clear" size="small" onClick={() => setShowHotelSearch(true)}>
+                  <IonIcon icon={searchOutline} />
+                </IonButton>
+              </div>
+            </IonItem>
+            <IonItem>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
+                <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500, color: 'var(--ion-color-medium)' }}>Place</span>
+                <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
+                  {dayStops.map(stop => (
+                    <div
+                      key={stop.id}
+                      onClick={() => { setPlaceName(stop.placeName); setLat(stop.lat); setLng(stop.lng); setSelectedStopId(stop.id) }}
+                      style={{
+                        flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
+                        background: selectedStopId === stop.id ? 'var(--ion-color-primary)' : 'var(--ion-color-light-shade)',
+                        color: selectedStopId === stop.id ? '#fff' : 'inherit',
+                        cursor: 'pointer', fontSize: '0.82rem',
+                      }}
+                    >
+                      {stop.placeName}
+                    </div>
+                  ))}
+                  {!selectedStopId && placeName && (
+                    <div style={{
+                      flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
+                      background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',
+                    }}>
+                      {placeName}
+                    </div>
+                  )}
+                </div>
+                <IonButton fill="clear" size="small" style={{ flexShrink: 0 }} onClick={() => setShowPlaceSearch(true)}>
+                  <IonIcon icon={searchOutline} />
+                </IonButton>
+              </div>
             </IonItem>
             <IonItem>
               <IonLabel position="stacked">Status</IonLabel>
@@ -156,38 +194,6 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
               <IonLabel position="stacked">Link</IonLabel>
               <IonInput value={link} onIonInput={e => setLink(e.detail.value ?? '')} placeholder="https://..." />
             </IonItem>
-            <IonItem>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
-                <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500, color: 'var(--ion-color-medium)' }}>Place</span>
-                <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
-                  {dayStops.map(stop => (
-                    <div
-                      key={stop.id}
-                      onClick={() => { setPlaceName(stop.placeName); setLat(stop.lat); setLng(stop.lng); setSelectedStopId(stop.id) }}
-                      style={{
-                        flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
-                        background: selectedStopId === stop.id ? 'var(--ion-color-primary)' : 'var(--ion-color-light-shade)',
-                        color: selectedStopId === stop.id ? '#fff' : 'inherit',
-                        cursor: 'pointer', fontSize: '0.82rem',
-                      }}
-                    >
-                      {stop.placeName}
-                    </div>
-                  ))}
-                  {!selectedStopId && placeName && (
-                    <div style={{
-                      flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
-                      background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',
-                    }}>
-                      {placeName}
-                    </div>
-                  )}
-                </div>
-                <IonButton fill="clear" size="small" style={{ flexShrink: 0 }} onClick={() => setShowPlaceSearch(true)}>
-                  <IonIcon icon={searchOutline} />
-                </IonButton>
-              </div>
-            </IonItem>
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 16px 16px', minHeight: 0 }}>
             <label style={{ fontSize: '0.75rem', color: 'var(--ion-color-medium)', fontWeight: 500, marginBottom: 6, display: 'block' }}>
@@ -204,6 +210,12 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       </IonContent>
     </IonModal>
 
+    <PlaceSearchModal
+      isOpen={showHotelSearch}
+      onDismiss={() => setShowHotelSearch(false)}
+      onSelect={r => { setName(r.name); setPlaceName(r.name); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
+      title="Search hotel"
+    />
     <PlaceSearchModal
       isOpen={showPlaceSearch}
       onDismiss={() => setShowPlaceSearch(false)}
