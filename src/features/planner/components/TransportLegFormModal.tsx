@@ -122,27 +122,6 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         </IonHeader>
         <IonContent className="ion-padding">
           <IonItem>
-            <IonLabel position="stacked">Method</IonLabel>
-            <IonSelect interface="popover" value={method} onIonChange={e => setMethod(e.detail.value)}>
-              {METHODS.map(m => <IonSelectOption key={m} value={m}>{METHOD_LABELS[m]}</IonSelectOption>)}
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Status</IonLabel>
-            <IonSelect interface="popover" value={status} onIonChange={e => setStatus(e.detail.value)}>
-              {STATUSES.map(s => <IonSelectOption key={s} value={s}>{STATUS_LABELS[s]}</IonSelectOption>)}
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Departure date & time</IonLabel>
-            <IonInput type="datetime-local" value={departureDateTime} onIonInput={e => setDepartureDateTime(e.detail.value ?? '')} />
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Arrival date & time</IonLabel>
-            <IonInput type="datetime-local" value={arrivalDateTime} onIonInput={e => setArrivalDateTime(e.detail.value ?? '')} />
-          </IonItem>
-          {!timeValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>Arrival must be at or after departure</p>}
-          <IonItem>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
               <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500 }}>Destination *</span>
               <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
@@ -175,6 +154,27 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
               </IonButton>
             </div>
           </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Method</IonLabel>
+            <IonSelect interface="popover" value={method} onIonChange={e => setMethod(e.detail.value)}>
+              {METHODS.map(m => <IonSelectOption key={m} value={m}>{METHOD_LABELS[m]}</IonSelectOption>)}
+            </IonSelect>
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Status</IonLabel>
+            <IonSelect interface="popover" value={status} onIonChange={e => setStatus(e.detail.value)}>
+              {STATUSES.map(s => <IonSelectOption key={s} value={s}>{STATUS_LABELS[s]}</IonSelectOption>)}
+            </IonSelect>
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Departure date & time</IonLabel>
+            <IonInput type="datetime-local" value={departureDateTime} onIonInput={e => setDepartureDateTime(e.detail.value ?? '')} />
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Arrival date & time</IonLabel>
+            <IonInput type="datetime-local" value={arrivalDateTime} onIonInput={e => setArrivalDateTime(e.detail.value ?? '')} />
+          </IonItem>
+          {!timeValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>Arrival must be at or after departure</p>}
           <IonItem>
             <IonLabel position="stacked">Price</IonLabel>
             <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
