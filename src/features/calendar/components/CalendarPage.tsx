@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonButtons, IonIcon,
@@ -9,7 +10,7 @@ import { useDays } from '../../planner/hooks/useDays'
 import { useTransportLegs } from '../../planner/hooks/useTransportLegs'
 import { useAccommodations } from '../../planner/hooks/useAccommodations'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
-import { StopRepository } from '../../../db/repositories/StopRepository'
+import { db } from '../../../db/db'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import CalendarGrid from './CalendarGrid'
 import { getDayCardStatus, type BudgetStatus } from '../../../lib/budget'
@@ -39,15 +40,16 @@ const CalendarPage: React.FC = () => {
 
   const today = new Date().toISOString().slice(0, 10)
 
-  const [stopNamesByDayId, setStopNamesByDayId] = useState<Record<string, string>>({})
-  useEffect(() => {
-    Promise.all(
-      days.map(async d => {
-        const stops = await StopRepository.getByDayId(d.id)
-        return [d.id, stops[0]?.placeName ?? ''] as [string, string]
-      })
-    ).then(pairs => setStopNamesByDayId(Object.fromEntries(pairs)))
-  }, [days])
+  const stopNamesByDayId = useLiveQuery(async () => {
+    if (!days.length) return {}
+    const dayIds = days.map(d => d.id)
+    const allStops = await db.stops.where('dayId').anyOf(dayIds).sortBy('order')
+    const firstByDay: Record<string, string> = {}
+    for (const stop of allStops) {
+      if (!(stop.dayId in firstByDay)) firstByDay[stop.dayId] = stop.placeName
+    }
+    return firstByDay
+  }, [days]) ?? {}
 
   const months = useMemo(
     () => trip ? monthsBetween(trip.startDate, trip.endDate) : [],
