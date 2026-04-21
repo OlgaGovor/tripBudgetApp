@@ -27,8 +27,8 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
   const [budgetDaily, setBudgetDaily] = useState(trip?.budget.dailyAmount?.toString() ?? '')
   const [saving, setSaving] = useState(false)
 
-  // Sync form fields when trip data first becomes available (e.g. loaded from DB after mount)
   useEffect(() => {
+    if (!isOpen) return
     setName(trip?.name ?? '')
     setDestination(trip?.destination ?? '')
     setEmoji(trip?.emoji ?? '✈️')
@@ -38,7 +38,7 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
     setCurrency(trip?.defaultCurrency ?? 'EUR')
     setBudgetTotal(trip?.budget.total?.toString() ?? '')
     setBudgetDaily(trip?.budget.dailyAmount?.toString() ?? '')
-  }, [trip?.id])
+  }, [isOpen, trip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const dateValid = !startDate || !endDate || endDate >= startDate
 
