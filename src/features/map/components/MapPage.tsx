@@ -1,24 +1,53 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonButtons, IonButton, IonIcon } from '@ionic/react'
 import { homeOutline } from 'ionicons/icons'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
+import type { LatLngBoundsExpression } from 'leaflet'
 import { useParams, useHistory } from 'react-router-dom'
 import { useMapData } from '../hooks/useMapData'
 import { fetchRoadRoute, greatCircleArc } from '../../../lib/routing'
 import type { TransportLeg } from '../../../db/schema'
 
-/** Watches the map container with ResizeObserver and calls invalidateSize() whenever
- *  the container dimensions change — fixes the blank-map issue when Leaflet initializes
- *  before IonContent finishes painting (common on desktop). */
-const MapResizer: React.FC = () => {
+interface MapSetupProps {
+  stops: Array<{ lat: number; lng: number }>
+}
+
+/** Handles both blank-map fix and fitting bounds to stops.
+ *  Re-applies fitBounds inside ResizeObserver so the fit runs once the
+ *  Ionic page-transition animation settles to its final container size. */
+const MapSetup: React.FC<MapSetupProps> = ({ stops }) => {
   const map = useMap()
+  const stopsRef = useRef(stops)
+  stopsRef.current = stops
+
+  function applyFit() {
+    const s = stopsRef.current
+    if (!s.length) return
+    if (s.length === 1) {
+      map.setView([s[0].lat, s[0].lng], 10)
+    } else {
+      const lats = s.map(p => p.lat)
+      const lngs = s.map(p => p.lng)
+      const bounds: LatLngBoundsExpression = [
+        [Math.min(...lats), Math.min(...lngs)],
+        [Math.max(...lats), Math.max(...lngs)],
+      ]
+      map.fitBounds(bounds, { padding: [40, 40] })
+    }
+  }
+
   useEffect(() => {
     const container = map.getContainer()
     map.invalidateSize()
-    const observer = new ResizeObserver(() => map.invalidateSize())
+    const observer = new ResizeObserver(() => { map.invalidateSize(); applyFit() })
     observer.observe(container)
     return () => observer.disconnect()
-  }, [map])
+  }, [map]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    applyFit()
+  }, [stops]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return null
 }
 
@@ -74,9 +103,10 @@ const MapPage: React.FC = () => {
     buildRoutes()
   }, [legs, stopsWithCoords])
 
-  const center: [number, number] = stopsWithCoords.length
-    ? [stopsWithCoords[0].lat!, stopsWithCoords[0].lng!]
-    : [20, 0]
+  const pinnedStops = useMemo(
+    () => stopsWithCoords.map(s => ({ lat: s.lat!, lng: s.lng! })),
+    [stopsWithCoords]
+  )
 
   return (
     <IonPage>
@@ -91,8 +121,8 @@ const MapPage: React.FC = () => {
       <IonContent scrollY={false}>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, minHeight: 0 }}>
-            <MapContainer center={center} zoom={stopsWithCoords.length ? 6 : 2} style={{ height: '100%', width: '100%' }}>
-              <MapResizer />
+            <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
+              <MapSetup stops={pinnedStops} />
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
