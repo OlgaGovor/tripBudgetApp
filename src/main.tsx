@@ -36,9 +36,10 @@ startAutoSync()
 // Silently restore Google token if user was previously connected
 SettingsRepository.get().then(s => {
   if (!s.googleConnected) return
+  let attempts = 0
   function tryRestore() {
     if (typeof (window as any).google !== 'undefined') { requestTokenQuiet(() => {}); return }
-    setTimeout(tryRestore, 300)
+    if (++attempts < 20) setTimeout(tryRestore, 300) // give up after ~6s (offline / script blocked)
   }
   tryRestore()
 })
