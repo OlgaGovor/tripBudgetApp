@@ -6,7 +6,7 @@ declare const google: any
 
 const FOLDER_NAME = 'TripBudget'
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string
-const SCOPES = 'https://www.googleapis.com/auth/drive.file'
+const SCOPES = 'https://www.googleapis.com/auth/drive'
 
 type TokenClient = {
   requestAccessToken: (opts?: { prompt?: string }) => void

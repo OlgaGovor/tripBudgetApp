@@ -1,0 +1,169 @@
+<style>
+  body { font-family: -apple-system, sans-serif; }
+  .day-card {
+    background: #fff; border-radius: 12px; border: 1px solid #e0e0e0;
+    overflow: hidden; font-size: 13px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .day-header {
+    background: #f5f5f5; padding: 8px 12px; font-weight: 700;
+    font-size: 12px; color: #555; border-bottom: 1px solid #e0e0e0;
+  }
+  .stop {
+    display: flex; align-items: stretch;
+    border-left: 3px solid #3880ff;
+    margin: 8px 10px 0; border-radius: 4px; background: #f8f9ff;
+  }
+  .stop-body { padding: 8px 10px; flex: 1; }
+  .stop-name { font-weight: 600; color: #222; }
+  .stop-meta { font-size: 11px; color: #999; margin-top: 2px; }
+  .transport-between {
+    margin: 5px 10px; padding: 7px 10px;
+    background: rgba(155,89,182,0.08); border-radius: 6px;
+    border-left: 3px solid #9b59b6;
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555;
+  }
+  .transport-between .method { font-size: 15px; line-height: 1; }
+  .transport-between .info { flex: 1; }
+  .transport-between .route { font-weight: 600; color: #444; }
+  .transport-between .time { font-size: 11px; color: #999; margin-top: 1px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .not-booked { background: #e74c3c; }
+  .booked { background: #f39c12; }
+  .icon-btn { font-size: 11px; color: #ccc; cursor: pointer; }
+  .add-leg { margin: 4px 10px 7px; }
+  .add-leg button {
+    font-size: 11px; color: #bbb; background: none;
+    border: 1px dashed #ddd; border-radius: 10px;
+    padding: 3px 10px; cursor: pointer;
+  }
+  .spacer { height: 4px; }
+  .new-stop {
+    border-left: 3px solid #3880ff; margin: 8px 10px 0;
+    border-radius: 4px; background: #f0f6ff;
+    border: 1px dashed #3880ff; border-left: 3px solid #3880ff;
+    padding: 6px 10px;
+  }
+  .new-stop .stop-name { color: #3880ff; font-style: italic; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+  .col-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; margin-bottom: 8px; font-weight: 600; }
+  .arrow { text-align: center; font-size: 20px; color: #bbb; padding: 20px 0 10px; }
+  .note { font-size: 11px; color: #888; margin-top: 8px; background: #f9f9f9; border-radius: 6px; padding: 7px 9px; border-left: 3px solid #ddd; }
+  .note strong { color: #555; }
+  .highlight { background: rgba(155,89,182,0.12); border-radius: 3px; padding: 0 3px; color: #7b1fa2; }
+</style>
+
+<h2>Interaction model — confirmed</h2>
+<p class="subtitle">One leg per gap · "add leg" disappears once filled · new destination auto-created</p>
+
+<div class="cols" style="margin-top: 20px;">
+
+  <!-- STATE 1: no legs yet -->
+  <div>
+    <div class="col-label">① Before — no legs</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">✈️ CDG — Paris</div>
+          <div class="stop-meta">stop 1</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Paris</button></div>
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🏛 Rome city centre</div>
+          <div class="stop-meta">stop 2</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Rome</button></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="note">
+      Every stop has an <strong>"add leg after"</strong> button — including last stop (creates new destination stop)
+    </div>
+  </div>
+
+  <!-- STATE 2: user tapped "add leg after Paris", filled Rome as dest -->
+  <div>
+    <div class="col-label">② After adding Paris → Rome leg</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">✈️ CDG — Paris</div>
+          <div class="stop-meta">stop 1</div>
+        </div>
+      </div>
+      <!-- leg fills the gap — no "add leg" between these two -->
+      <div class="transport-between">
+        <span class="method">✈️</span>
+        <div class="info">
+          <div class="route">Paris → Rome</div>
+          <div class="time">10:00 → 13:30</div>
+        </div>
+        <span class="status-dot not-booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🏛 Rome city centre</div>
+          <div class="stop-meta">stop 2</div>
+        </div>
+      </div>
+      <!-- still available after the last stop -->
+      <div class="add-leg"><button>＋ add leg after Rome</button></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="note">
+      Gap Paris→Rome is <span class="highlight">filled</span> — button gone for that gap. Rome still has its own button.
+    </div>
+  </div>
+
+  <!-- STATE 3: destination didn't exist — auto-created -->
+  <div>
+    <div class="col-label">③ Destination auto-created</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">✈️ CDG — Paris</div>
+          <div class="stop-meta">stop 1</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Paris</button></div>
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🏛 Rome city centre</div>
+          <div class="stop-meta">stop 2</div>
+        </div>
+      </div>
+      <!-- user tapped "add leg after Rome", typed "Naples" which didn't exist -->
+      <div class="transport-between">
+        <span class="method">🚌</span>
+        <div class="info">
+          <div class="route">Rome → Naples</div>
+          <div class="time">16:00 → 17:45</div>
+        </div>
+        <span class="status-dot booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+      <!-- Naples was auto-created as stop 3, gets its own button -->
+      <div class="stop">
+        <div class="stop-body">
+          <div class="stop-name">🏙 Naples</div>
+          <div class="stop-meta">stop 3 · auto-added</div>
+        </div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Naples</button></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="note">
+      "Naples" typed in modal → <strong>new stop auto-created</strong> at end of day. New "add leg after Naples" appears.
+    </div>
+  </div>
+
+</div>

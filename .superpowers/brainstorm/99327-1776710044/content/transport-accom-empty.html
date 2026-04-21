@@ -1,0 +1,150 @@
+<style>
+  body { font-family: -apple-system, sans-serif; }
+  .day-card {
+    background: #fff; border-radius: 12px; border: 1px solid #e0e0e0;
+    overflow: hidden; font-size: 13px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    max-width: 300px;
+  }
+  .day-header {
+    background: #f5f5f5; padding: 8px 12px; font-weight: 700;
+    font-size: 12px; color: #555; border-bottom: 1px solid #e0e0e0;
+  }
+  .stop {
+    border-left: 3px solid #3880ff;
+    margin: 8px 10px 0; border-radius: 4px; background: #f8f9ff;
+    padding: 7px 10px;
+  }
+  .stop-name { font-weight: 600; color: #222; font-size: 13px; }
+  .stop-meta { font-size: 11px; color: #999; margin-top: 1px; }
+  .transport-card {
+    margin: 5px 10px; padding: 7px 10px;
+    background: rgba(155,89,182,0.08); border-radius: 6px;
+    border-left: 3px solid #9b59b6;
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+  }
+  .transport-card .method { font-size: 15px; flex-shrink: 0; }
+  .transport-card .info { flex: 1; }
+  .transport-card .route { font-weight: 600; color: #444; }
+  .transport-card .time { font-size: 11px; color: #999; margin-top: 1px; }
+
+  /* Accommodation — filled */
+  .accom-card {
+    margin: 5px 10px; padding: 7px 10px;
+    background: rgba(22,160,133,0.08); border-radius: 6px;
+    border-left: 3px solid #16a085;
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+  }
+  .accom-card .method { font-size: 15px; flex-shrink: 0; }
+  .accom-card .info { flex: 1; }
+  .accom-card .name { font-weight: 600; color: #444; }
+  .accom-card .dates { font-size: 11px; color: #999; margin-top: 1px; }
+
+  /* Accommodation — empty state */
+  .accom-empty {
+    margin: 5px 10px; padding: 7px 10px;
+    background: transparent;
+    border-radius: 6px;
+    border-left: 3px solid #b2dfdb;
+    border: 1px dashed #b2dfdb;
+    border-left: 3px solid #b2dfdb;
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+    cursor: pointer;
+  }
+  .accom-empty .method { font-size: 15px; flex-shrink: 0; opacity: 0.4; }
+  .accom-empty .label { color: #16a085; font-weight: 500; }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .not-booked { background: #e74c3c; }
+  .booked { background: #f39c12; }
+  .booked-paid { background: #27ae60; }
+  .icon-btn { font-size: 11px; color: #ccc; }
+  .add-leg { margin: 4px 10px 7px; }
+  .add-leg button {
+    font-size: 11px; color: #bbb; background: none;
+    border: 1px dashed #ddd; border-radius: 10px;
+    padding: 3px 10px; cursor: pointer;
+  }
+  .spacer { height: 6px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 600px) { .cols { grid-template-columns: 1fr; } }
+  .col-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; margin-bottom: 8px; font-weight: 600; }
+</style>
+
+<h2>Accommodation — filled vs empty</h2>
+<p class="subtitle">Always shown at end of day · dashed when not added yet</p>
+
+<div class="cols" style="margin-top: 20px;">
+
+  <div>
+    <div class="col-label">Added</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+      <div class="stop">
+        <div class="stop-name">CDG — Paris</div>
+        <div class="stop-meta">stop 1</div>
+      </div>
+      <div class="transport-card">
+        <span class="method">✈️</span>
+        <div class="info">
+          <div class="route">Paris → Rome</div>
+          <div class="time">10:00 → 13:30</div>
+        </div>
+        <span class="status-dot not-booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+      <div class="stop">
+        <div class="stop-name">Rome city centre</div>
+        <div class="stop-meta">stop 2</div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Rome</button></div>
+
+      <div class="accom-card">
+        <span class="method">🏨</span>
+        <div class="info">
+          <div class="name">Hotel Artemide</div>
+          <div class="dates">14 Apr → 16 Apr</div>
+        </div>
+        <span class="status-dot booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="col-label">Not added yet</div>
+    <div class="day-card">
+      <div class="day-header">Day 3 · Mon 14 Apr</div>
+      <div class="stop">
+        <div class="stop-name">CDG — Paris</div>
+        <div class="stop-meta">stop 1</div>
+      </div>
+      <div class="transport-card">
+        <span class="method">✈️</span>
+        <div class="info">
+          <div class="route">Paris → Rome</div>
+          <div class="time">10:00 → 13:30</div>
+        </div>
+        <span class="status-dot not-booked"></span>
+        <span class="icon-btn">✏️</span>
+        <span class="icon-btn">🗑</span>
+      </div>
+      <div class="stop">
+        <div class="stop-name">Rome city centre</div>
+        <div class="stop-meta">stop 2</div>
+      </div>
+      <div class="add-leg"><button>＋ add leg after Rome</button></div>
+
+      <!-- Empty accommodation — dashed teal -->
+      <div class="accom-empty">
+        <span class="method">🏨</span>
+        <span class="label">＋ Add accommodation</span>
+      </div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+</div>

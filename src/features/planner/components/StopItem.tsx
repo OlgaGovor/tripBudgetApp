@@ -1,27 +1,23 @@
+// src/features/planner/components/StopItem.tsx
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { IonButton, IonIcon } from '@ionic/react'
-import { addOutline, chevronUpOutline, chevronDownOutline, pencilOutline, trashOutline } from 'ionicons/icons'
+import { chevronUpOutline, chevronDownOutline, pencilOutline, trashOutline } from 'ionicons/icons'
 import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
-import TransportLegItem from './TransportLegItem'
-import TransportLegFormModal from './TransportLegFormModal'
 import StopFormModal from './StopFormModal'
 
 interface Props {
   stop: Stop
   tripId: string
   legsFromThisStop: TransportLeg[]
-  nearbyStops?: Array<{ stop: Stop; dayNumber: number }>
-  dayDate?: string
   canMoveUp?: boolean
   canMoveDown?: boolean
   onMoveUp?: () => void
   onMoveDown?: () => void
 }
 
-const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, nearbyStops, dayDate, canMoveUp, canMoveDown, onMoveUp, onMoveDown }) => {
-  const [showTransportForm, setShowTransportForm] = useState(false)
+const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, canMoveUp, canMoveDown, onMoveUp, onMoveDown }) => {
   const [showStopEditForm, setShowStopEditForm] = useState(false)
 
   const usedAsDestination = useLiveQuery(
@@ -34,10 +30,8 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, nearbyStops
     await db.stops.delete(stop.id)
   }
 
-  const nearbyOtherStops = nearbyStops?.filter(ns => ns.stop.id !== stop.id)
-
   return (
-    <div style={{ padding: '0.5rem 1rem', borderLeft: '3px solid var(--ion-color-primary)', marginLeft: '1rem', marginBottom: '0.5rem' }}>
+    <div style={{ margin: '5px 10px', padding: '7px 10px', background: '#f8f9ff', borderRadius: 6, borderLeft: '3px solid #3880ff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <span style={{ fontWeight: 600 }}>{stop.placeName}</span>
@@ -66,26 +60,6 @@ const StopItem: React.FC<Props> = ({ stop, tripId, legsFromThisStop, nearbyStops
           </IonButton>
         </div>
       </div>
-
-      {legsFromThisStop.map(leg => (
-        <TransportLegItem key={leg.id} leg={leg} />
-      ))}
-
-      {legsFromThisStop.length === 0 && (
-        <>
-          <IonButton fill="clear" size="small" onClick={() => setShowTransportForm(true)}>
-            <IonIcon icon={addOutline} /> Add transport
-          </IonButton>
-          <TransportLegFormModal
-            isOpen={showTransportForm}
-            onDismiss={() => setShowTransportForm(false)}
-            tripId={tripId}
-            fromStopId={stop.id}
-            nearbyStops={nearbyOtherStops}
-            initialDate={dayDate}
-          />
-        </>
-      )}
       <StopFormModal
         isOpen={showStopEditForm}
         onDismiss={() => setShowStopEditForm(false)}
