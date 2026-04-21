@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from '../db'
 import type { Expense } from '../schema'
 import { getExchangeRates, convertAmount } from '../../lib/currency'
+import { TripRepository } from './TripRepository'
 
 type CreateInput = {
   tripId: string
@@ -36,6 +37,7 @@ export const ExpenseRepository = {
       amountConverted,
       convertedAt: new Date().toISOString(),
     })
+    await TripRepository.touch(input.tripId)
     return id
   },
 
@@ -55,10 +57,13 @@ export const ExpenseRepository = {
       }
     }
     await db.expenses.update(id, { ...updates, amountConverted, convertedAt })
+    await TripRepository.touch(existing.tripId)
   },
 
   async delete(id: string): Promise<void> {
+    const existing = await db.expenses.get(id)
     await db.expenses.delete(id)
+    if (existing) await TripRepository.touch(existing.tripId)
   },
 
   async getTotalConverted(tripId: string): Promise<number> {

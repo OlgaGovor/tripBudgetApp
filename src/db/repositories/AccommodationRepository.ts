@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from '../db'
 import type { Accommodation } from '../schema'
 import { ExpenseRepository } from './ExpenseRepository'
+import { TripRepository } from './TripRepository'
 
 /** Upsert accommodation stops: update in place if already exists, create if missing,
  *  delete stops for days no longer in the date range. Never duplicates.
@@ -95,11 +96,11 @@ async function deleteStopsForAccommodation(accommodationId: string): Promise<voi
 
 type AccommodationInput = Omit<Accommodation, 'id'>
 
-/** Returns all dates from checkIn up to (but not including) checkOut */
+/** Returns all dates from checkIn through checkOut (inclusive) */
 function occupiedDates(checkIn: string, checkOut: string): string[] {
   const dates: string[] = []
   let current = checkIn
-  while (current < checkOut) {
+  while (current <= checkOut) {
     dates.push(current)
     const d = new Date(current + 'T00:00:00Z')
     d.setUTCDate(d.getUTCDate() + 1)
@@ -134,6 +135,7 @@ export const AccommodationRepository = {
     await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
     await syncStopsForAccommodation(input.tripId, id, input.name, input.link, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId)
     await syncExpenseForAccommodation(id, input.tripId, input.name, input.placeName, input.checkIn, input.price, input.priceCurrency)
+    await TripRepository.touch(input.tripId)
     return id
   },
 
@@ -158,6 +160,7 @@ export const AccommodationRepository = {
       await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.link, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId)
     }
     await syncExpenseForAccommodation(id, existing.tripId, updated.name, updated.placeName, updated.checkIn, updated.price, updated.priceCurrency)
+    await TripRepository.touch(existing.tripId)
   },
 
   async delete(id: string): Promise<void> {
@@ -167,6 +170,7 @@ export const AccommodationRepository = {
       await deleteStopsForAccommodation(id)
       const expense = await db.expenses.where('accommodationId').equals(id).first()
       if (expense) await db.expenses.delete(expense.id)
+      await TripRepository.touch(existing.tripId)
     }
     await db.accommodations.delete(id)
   },

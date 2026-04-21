@@ -111,11 +111,12 @@ export async function uploadFile(filename: string, content: string): Promise<voi
   const url = existingId
     ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
     : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'
-  await fetch(url, {
+  const res = await fetch(url, {
     method: existingId ? 'PATCH' : 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: form,
   })
+  if (!res.ok) throw new Error(`Drive upload failed: ${res.status}`)
 }
 
 export async function downloadFile(filename: string): Promise<string | null> {

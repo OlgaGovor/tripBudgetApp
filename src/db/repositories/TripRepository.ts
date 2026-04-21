@@ -42,6 +42,12 @@ export const TripRepository = {
     notifyDataChanged(id)
   },
 
+  async touch(id: string): Promise<void> {
+    const now = new Date().toISOString()
+    await db.trips.update(id, { updatedAt: now })
+    notifyDataChanged(id)
+  },
+
   async delete(id: string): Promise<void> {
     await db.transaction(
       'rw',

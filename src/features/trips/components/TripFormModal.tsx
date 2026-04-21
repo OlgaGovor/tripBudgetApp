@@ -25,6 +25,7 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
   const [currency, setCurrency] = useState(trip?.defaultCurrency ?? 'EUR')
   const [budgetTotal, setBudgetTotal] = useState(trip?.budget.total?.toString() ?? '')
   const [budgetDaily, setBudgetDaily] = useState(trip?.budget.dailyAmount?.toString() ?? '')
+  const [saving, setSaving] = useState(false)
 
   // Sync form fields when trip data first becomes available (e.g. loaded from DB after mount)
   useEffect(() => {
@@ -42,17 +43,22 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
   const dateValid = !startDate || !endDate || endDate >= startDate
 
   async function handleSave() {
-    if (!name.trim() || !startDate || !endDate || !dateValid) return
-    const budget = {
-      total: budgetTotal ? parseFloat(budgetTotal) : undefined,
-      dailyAmount: budgetDaily ? parseFloat(budgetDaily) : undefined,
+    if (saving || !name.trim() || !startDate || !endDate || !dateValid) return
+    setSaving(true)
+    try {
+      const budget = {
+        total: budgetTotal ? parseFloat(budgetTotal) : undefined,
+        dailyAmount: budgetDaily ? parseFloat(budgetDaily) : undefined,
+      }
+      if (trip) {
+        await TripRepository.update({ id: trip.id, name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget })
+      } else {
+        await TripRepository.create({ name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget })
+      }
+      onDismiss()
+    } finally {
+      setSaving(false)
     }
-    if (trip) {
-      await TripRepository.update({ id: trip.id, name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget })
-    } else {
-      await TripRepository.create({ name, destination, emoji, coverColor, startDate, endDate, defaultCurrency: currency, budget })
-    }
-    onDismiss()
   }
 
   return (
@@ -64,7 +70,7 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
           </IonButtons>
           <IonTitle>{trip ? 'Edit Trip' : 'New Trip'}</IonTitle>
           <IonButtons slot="end">
-            <IonButton strong onClick={handleSave} disabled={!name.trim() || !startDate || !endDate || !dateValid}>
+            <IonButton strong onClick={handleSave} disabled={saving || !name.trim() || !startDate || !endDate || !dateValid}>
               Save
             </IonButton>
           </IonButtons>

@@ -5,6 +5,7 @@ import type { TransportLeg } from '../schema'
 import { DayRepository } from './DayRepository'
 import { StopRepository } from './StopRepository'
 import { ExpenseRepository } from './ExpenseRepository'
+import { TripRepository } from './TripRepository'
 
 const METHOD_EMOJIS: Record<TransportLeg['method'], string> = {
   car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
@@ -130,6 +131,7 @@ export const TransportLegRepository = {
       id, tripId, fromStopId, toStopId, arrivalDateTime, price, priceCurrency, usefulLinks: [], ...rest,
     })
     await syncExpenseForTransportLeg(id)
+    await TripRepository.touch(tripId)
     return id
   },
 
@@ -153,6 +155,7 @@ export const TransportLegRepository = {
       priceCurrency,
     })
     await syncExpenseForTransportLeg(id)
+    await TripRepository.touch(leg.tripId)
   },
 
   async delete(id: string): Promise<void> {
@@ -161,6 +164,7 @@ export const TransportLegRepository = {
       await db.stops.delete(leg.toStopId)
       const expense = await db.expenses.where('transportLegId').equals(id).first()
       if (expense) await db.expenses.delete(expense.id)
+      await TripRepository.touch(leg.tripId)
     }
     await db.transportLegs.delete(id)
   },
