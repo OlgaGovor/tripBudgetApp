@@ -42,6 +42,9 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, color: '#444' }}>
             {fromStop?.placeName ?? '…'} → {toStop?.placeName ?? '…'}
+            {leg.bookingLink && (
+              <a href={leg.bookingLink} target="_blank" rel="noreferrer" style={{ marginLeft: 8, fontSize: '0.8rem' }}>🔗</a>
+            )}
           </div>
           {timeStr && <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 1 }}>{timeStr}</div>}
         </div>

@@ -63,7 +63,12 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
       }}>
         <span style={{ fontSize: '1rem', flexShrink: 0 }}>🏨</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, color: '#444' }}>{accom.name}</div>
+          <div style={{ fontWeight: 600, color: '#444' }}>
+            {accom.name}
+            {accom.link && (
+              <a href={accom.link} target="_blank" rel="noreferrer" style={{ marginLeft: 8, fontSize: '0.8rem' }}>🔗</a>
+            )}
+          </div>
           <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 1 }}>
             {fmtDate(accom.checkIn)} → {fmtDate(accom.checkOut)}
           </div>

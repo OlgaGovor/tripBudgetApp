@@ -8,7 +8,10 @@ import type { TransportLeg } from '../../../../db/schema'
 vi.mock('@ionic/react', () => ionicMock)
 vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: (fn: () => any) => {
-    try { return fn() } catch { return undefined }
+    try {
+      const r = fn()
+      return r instanceof Promise ? undefined : r
+    } catch { return undefined }
   },
 }))
 vi.mock('../../../../db/db', () => ({
@@ -17,6 +20,8 @@ vi.mock('../../../../db/db', () => ({
       id === 'stop-a' ? { id: 'stop-a', placeName: 'Paris' } :
       id === 'stop-b' ? { id: 'stop-b', placeName: 'Rome' } : undefined
     )},
+    days: { get: () => Promise.resolve(undefined) },
+    trips: { get: () => Promise.resolve(undefined) },
   },
 }))
 vi.mock('../../../../db/repositories/TransportLegRepository', () => ({

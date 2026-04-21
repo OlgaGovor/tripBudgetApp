@@ -96,7 +96,14 @@ const TripFormModal: React.FC<Props> = ({ isOpen, onDismiss, trip }) => {
         </IonItem>
         <IonItem>
           <IonLabel position="stacked">End date *</IonLabel>
-          <IonInput type="date" value={endDate} onIonInput={e => setEndDate(e.detail.value ?? '')} />
+          <IonInput
+            type="date"
+            value={endDate}
+            onIonFocus={() => {
+              if (!endDate) setEndDate(startDate || new Date().toISOString().slice(0, 10))
+            }}
+            onIonInput={e => setEndDate(e.detail.value ?? '')}
+          />
         </IonItem>
         {!dateValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>End date must be on or after start date</p>}
         <IonItem>

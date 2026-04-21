@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { IonIcon } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Accommodation, Day, Stop, TransportLeg } from '../../../db/schema'
+import type { Accommodation, Day, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
 import { useStops } from '../hooks/useStops'
 import { DayRepository } from '../../../db/repositories/DayRepository'
@@ -33,11 +33,6 @@ interface Props {
   currency?: string
 }
 
-function addDaysToDateStr(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().slice(0, 10)
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en', {
@@ -104,25 +99,6 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
   const [showStopForm, setShowStopForm] = useState(false)
   const [addLegFromStopId, setAddLegFromStopId] = useState<string | null>(null)
   const { stops } = useStops(day.id)
-
-  const nearbyStops = useLiveQuery<Array<{ stop: Stop; dayNumber: number }>>(
-    async () => {
-      const endDate = addDaysToDateStr(day.date, 3)
-      const nearbyDays = await db.days
-        .where('tripId').equals(tripId)
-        .filter(dd => dd.date >= day.date && dd.date <= endDate)
-        .sortBy('date')
-      const result: Array<{ stop: Stop; dayNumber: number }> = []
-      for (const nd of nearbyDays) {
-        const ndStops = await db.stops.where('dayId').equals(nd.id).sortBy('order')
-        for (const s of ndStops) {
-          result.push({ stop: s, dayNumber: nd.dayNumber })
-        }
-      }
-      return result
-    },
-    [tripId, day.date]
-  )
 
   const dayAccom = accommodations.find(a => a.id === day.accommodationId)
   const legsForStop = (stopId: string): TransportLeg[] =>
@@ -232,7 +208,7 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
           onDismiss={() => setAddLegFromStopId(null)}
           tripId={tripId}
           fromStopId={addLegFromStopId}
-          nearbyStops={nearbyStops ?? []}
+
           initialDate={day.date}
         />
       )}

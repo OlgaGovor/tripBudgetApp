@@ -8,6 +8,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
+
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
 import PlaceSearchModal from './PlaceSearchModal'
 import CurrencySelectModal from './CurrencySelectModal'
 
@@ -27,11 +33,10 @@ interface Props {
   tripId: string
   fromStopId: string
   leg?: TransportLeg
-  nearbyStops?: Array<{ stop: Stop; dayNumber: number }>
   initialDate?: string
 }
 
-const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg, nearbyStops, initialDate }) => {
+const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg, initialDate }) => {
   const [method, setMethod] = useState<TransportLeg['method']>('train')
   const [status, setStatus] = useState<TransportLeg['status']>('not_booked')
   const [departureDateTime, setDepartureDateTime] = useState('')
@@ -49,6 +54,24 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
 
   const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
 
+  const nearbyStops = useLiveQuery(async () => {
+    const fromStop = await db.stops.get(fromStopId)
+    if (!fromStop) return []
+    const fromDay = await db.days.get(fromStop.dayId)
+    if (!fromDay) return []
+    const endDate = addDays(fromDay.date, 3)
+    const nearbyDays = await db.days
+      .where('tripId').equals(tripId)
+      .filter(dd => dd.date >= fromDay.date && dd.date <= endDate)
+      .sortBy('date')
+    const result: Array<{ stop: Stop; dayNumber: number }> = []
+    for (const nd of nearbyDays) {
+      const ndStops = await db.stops.where('dayId').equals(nd.id).sortBy('order')
+      for (const s of ndStops) result.push({ stop: s, dayNumber: nd.dayNumber })
+    }
+    return result
+  }, [fromStopId, tripId])
+
   const toStop = useLiveQuery<Stop | undefined>(
     () => leg?.toStopId ? db.stops.get(leg.toStopId) : Promise.resolve(undefined),
     [leg?.toStopId]
@@ -65,7 +88,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     setDestinationName(toStop?.placeName ?? '')
     setDestinationLat(toStop?.lat)
     setDestinationLng(toStop?.lng)
-    setSelectedToStopId(undefined)
+    setSelectedToStopId(leg?.toStopId)
     setBookingLink(leg?.bookingLink ?? '')
     setNotes(leg?.notes ?? '')
     setPrice(leg?.price?.toString() ?? '')
@@ -125,7 +148,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
               <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500 }}>Destination *</span>
               <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
-                {!leg && nearbyStops?.map(ns => (
+                {nearbyStops?.map(ns => (
                   <div
                     key={ns.stop.id}
                     onClick={() => { setDestinationName(ns.stop.placeName); setDestinationLat(ns.stop.lat); setDestinationLng(ns.stop.lng); setSelectedToStopId(ns.stop.id) }}
@@ -140,7 +163,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
                     <span style={{ fontSize: '0.72rem', opacity: 0.7, marginLeft: 3 }}>D{ns.dayNumber}</span>
                   </div>
                 ))}
-                {!selectedToStopId && destinationName && (
+                {!nearbyStops?.some(ns => ns.stop.id === selectedToStopId) && destinationName && (
                   <div style={{
                     flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
                     background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',

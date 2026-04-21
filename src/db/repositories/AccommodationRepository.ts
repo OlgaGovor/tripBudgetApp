@@ -12,7 +12,6 @@ async function syncStopsForAccommodation(
   tripId: string,
   accommodationId: string,
   name: string,
-  link: string | undefined,
   checkIn: string,
   checkOut: string,
   placeName?: string,
@@ -45,7 +44,7 @@ async function syncStopsForAccommodation(
   // Upsert for each day in the new range
   const days = await db.days.where('tripId').equals(tripId).filter(d => newDates.has(d.date)).toArray()
   await Promise.all(days.map(async d => {
-    const stopData = { placeName: placeName ?? name, placeLink: link, lat, lng }
+    const stopData = { placeName: placeName ?? name, placeLink: undefined as string | undefined, lat, lng }
     const existing = remainingByDayId.get(d.id)
     if (existing) {
       // Already linked to this accommodation — update in place
@@ -110,7 +109,7 @@ function occupiedDates(checkIn: string, checkOut: string): string[] {
 }
 
 async function assignToDays(tripId: string, accommodationId: string, checkIn: string, checkOut: string): Promise<void> {
-  const dates = new Set(occupiedDates(checkIn, checkOut))
+  const dates = new Set(occupiedDates(checkIn, checkOut).filter(d => d < checkOut))
   const days = await db.days.where('tripId').equals(tripId).filter(d => dates.has(d.date)).toArray()
   await Promise.all(days.map(d => db.days.update(d.id, { accommodationId })))
 }
@@ -133,7 +132,7 @@ export const AccommodationRepository = {
     const id = uuidv4()
     await db.accommodations.add({ ...input, id })
     await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
-    await syncStopsForAccommodation(input.tripId, id, input.name, input.link, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId)
+    await syncStopsForAccommodation(input.tripId, id, input.name, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId)
     await syncExpenseForAccommodation(id, input.tripId, input.name, input.placeName, input.checkIn, input.price, input.priceCurrency)
     await TripRepository.touch(input.tripId)
     return id
@@ -157,7 +156,7 @@ export const AccommodationRepository = {
       await assignToDays(existing.tripId, id, updated.checkIn, updated.checkOut)
     }
     if (stopsAffected) {
-      await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.link, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId)
+      await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId)
     }
     await syncExpenseForAccommodation(id, existing.tripId, updated.name, updated.placeName, updated.checkIn, updated.price, updated.priceCurrency)
     await TripRepository.touch(existing.tripId)
