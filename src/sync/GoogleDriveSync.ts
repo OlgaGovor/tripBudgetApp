@@ -45,6 +45,20 @@ export function requestSignIn(onConnected?: () => void): void {
   tokenClient?.requestAccessToken({ prompt: 'consent' })
 }
 
+/** Re-acquire a token silently (no consent screen if already granted). Used on app restart. */
+export function requestTokenQuiet(onSuccess: () => void, onFail?: () => void): void {
+  if (typeof google === 'undefined') { onFail?.(); return }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp: { access_token?: string; error?: string }) => {
+      if (resp.access_token) { accessToken = resp.access_token; onSuccess() }
+      else onFail?.()
+    },
+  })
+  tokenClient.requestAccessToken({ prompt: '' })
+}
+
 export function signOut(): void {
   if (accessToken && typeof google !== 'undefined') google.accounts.oauth2.revoke(accessToken, () => {})
   accessToken = null

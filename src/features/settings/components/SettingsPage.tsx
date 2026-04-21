@@ -1,14 +1,15 @@
+import { useState } from 'react'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonItem, IonLabel, IonSelect, IonSelectOption, IonList,
-  IonButtons, IonButton, IonIcon,
+  IonButtons, IonButton, IonIcon, IonSpinner,
 } from '@ionic/react'
 import { homeOutline } from 'ionicons/icons'
 import { useHistory } from 'react-router-dom'
 import { SettingsRepository } from '../../../db/repositories/SettingsRepository'
 import { ExpenseCategoryRepository } from '../../../db/repositories/ExpenseCategoryRepository'
-import { requestSignIn, signOut } from '../../../sync/GoogleDriveSync'
-import { syncNow, downloadAll } from '../../../sync/SyncManager'
+import { requestSignIn, requestTokenQuiet, signOut, isSignedIn } from '../../../sync/GoogleDriveSync'
+import { syncNow } from '../../../sync/SyncManager'
 import CategoryEditor from './CategoryEditor'
 import DataManagementSection from './DataManagementSection'
 
@@ -22,6 +23,26 @@ const SettingsPage: React.FC = () => {
   const history = useHistory()
   const settings = SettingsRepository.use()
   const categories = ExpenseCategoryRepository.useAll() ?? []
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<'ok' | 'error' | null>(null)
+
+  async function handleSyncNow() {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      if (!isSignedIn()) {
+        await new Promise<void>((resolve, reject) =>
+          requestTokenQuiet(resolve, reject)
+        )
+      }
+      await syncNow()
+      setSyncResult('ok')
+    } catch {
+      setSyncResult('error')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   if (!settings) return null
 
@@ -44,7 +65,7 @@ const SettingsPage: React.FC = () => {
             <IonLabel>{settings.googleConnected ? 'Google Drive connected' : 'Google Drive'}</IonLabel>
             {settings.googleConnected
               ? <IonButton slot="end" fill="outline" color="danger" onClick={async () => { signOut(); await SettingsRepository.update({ googleConnected: false }) }}>Sign out</IonButton>
-              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => { await SettingsRepository.update({ googleConnected: true }); await downloadAll() })}>Sign in</IonButton>
+              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => { await SettingsRepository.update({ googleConnected: true }); syncNow().catch(() => {}) })}>Sign in</IonButton>
             }
           </IonItem>
           {settings.lastSyncedAt && (
@@ -64,8 +85,18 @@ const SettingsPage: React.FC = () => {
               <IonSelectOption value="manual">Manual only</IonSelectOption>
             </IonSelect>
           </IonItem>
-          <IonItem button onClick={() => syncNow()} disabled={!settings.googleConnected}>
-            <IonLabel>Sync now</IonLabel>
+          <IonItem lines="none">
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 4px' }}>
+              <IonButton
+                expand="block"
+                style={{ width: '100%', maxWidth: 280, '--background': '#5b9bd5', '--background-activated': '#4a8bc4' } as any}
+                disabled={!settings.googleConnected || syncing}
+                onClick={handleSyncNow}
+              >
+                {syncing ? <IonSpinner name="crescent" style={{ width: 18, height: 18 }} /> : 'Sync now'}
+              </IonButton>
+              {!syncing && syncResult === 'error' && <span style={{ fontSize: '0.8rem', color: 'var(--ion-color-danger)', marginTop: 6 }}>Sync failed — check connection</span>}
+            </div>
           </IonItem>
         </IonList>
 

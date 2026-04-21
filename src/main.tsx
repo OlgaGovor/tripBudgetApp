@@ -4,6 +4,8 @@ import { IonApp, setupIonicReact } from '@ionic/react'
 import App from './App'
 import { ExpenseCategoryRepository } from './db/repositories/ExpenseCategoryRepository'
 import { startAutoSync } from './sync/SyncManager'
+import { requestTokenQuiet } from './sync/GoogleDriveSync'
+import { SettingsRepository } from './db/repositories/SettingsRepository'
 
 import './index.css'
 
@@ -30,6 +32,16 @@ L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, 
 
 setupIonicReact()
 startAutoSync()
+
+// Silently restore Google token if user was previously connected
+SettingsRepository.get().then(s => {
+  if (!s.googleConnected) return
+  function tryRestore() {
+    if (typeof (window as any).google !== 'undefined') { requestTokenQuiet(() => {}); return }
+    setTimeout(tryRestore, 300)
+  }
+  tryRestore()
+})
 if (navigator.storage?.persist) {
   navigator.storage.persist()
 }

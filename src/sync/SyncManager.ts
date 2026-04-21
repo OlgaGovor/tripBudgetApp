@@ -40,29 +40,36 @@ async function canSync(): Promise<boolean> {
 }
 
 export async function syncNow(): Promise<void> {
-  if (!isSignedIn()) return
+  if (!isSignedIn()) throw new Error('Not signed in')
   setStatus('syncing')
   try {
     const { importTrip } = await import('../lib/exportImport')
-    const trips = await db.trips.toArray()
-    for (const t of trips) {
-      const json = await exportTrip(t.id)
-      await uploadFile(`trip_${t.id}.json`, json)
-    }
+
+    // 1. Download first: update local with anything newer from Drive
     const filenames = await listTripFiles()
     const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
     for (const filename of tripFiles) {
       const json = await downloadFile(filename)
       if (!json) continue
       const bundle = JSON.parse(json)
-      const local = await db.trips.get(bundle.trip?.id)
+      if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
+      const local = await db.trips.get(bundle.trip.id)
       if (local && local.updatedAt >= bundle.trip.updatedAt) continue
       await importTrip(json, 'replace')
     }
+
+    // 2. Upload after: local now has the freshest data for every trip
+    const trips = await db.trips.toArray()
+    for (const t of trips) {
+      const json = await exportTrip(t.id)
+      await uploadFile(`trip_${t.id}.json`, json)
+    }
+
     await SettingsRepository.update({ lastSyncedAt: new Date().toISOString() })
     setStatus('synced')
-  } catch {
+  } catch (e) {
     setStatus(navigator.onLine ? 'error' : 'offline')
+    throw e
   }
 }
 
@@ -98,7 +105,8 @@ export async function downloadAll(): Promise<void> {
       const json = await downloadFile(filename)
       if (!json) continue
       const bundle = JSON.parse(json)
-      const local = await db.trips.get(bundle.trip?.id)
+      if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
+      const local = await db.trips.get(bundle.trip.id)
       if (local && local.updatedAt >= bundle.trip.updatedAt) continue
       await importTrip(json, 'replace')
     }
