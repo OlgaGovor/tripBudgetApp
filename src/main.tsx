@@ -4,7 +4,7 @@ import { IonApp, setupIonicReact } from '@ionic/react'
 import App from './App'
 import { ExpenseCategoryRepository } from './db/repositories/ExpenseCategoryRepository'
 import { startAutoSync } from './sync/SyncManager'
-import { requestTokenQuiet } from './sync/GoogleDriveSync'
+import { requestTokenQuiet, fetchUserEmail } from './sync/GoogleDriveSync'
 import { SettingsRepository } from './db/repositories/SettingsRepository'
 
 import './index.css'
@@ -38,7 +38,14 @@ SettingsRepository.get().then(s => {
   if (!s.googleConnected) return
   let attempts = 0
   function tryRestore() {
-    if (typeof (window as any).google !== 'undefined') { requestTokenQuiet(() => {}); return }
+    if (typeof (window as any).google !== 'undefined') {
+      requestTokenQuiet(
+        () => { fetchUserEmail().then(email => { if (email) SettingsRepository.update({ googleEmail: email }) }) },
+        undefined,
+        s.googleEmail,
+      )
+      return
+    }
     if (++attempts < 20) setTimeout(tryRestore, 300) // give up after ~6s (offline / script blocked)
   }
   tryRestore()

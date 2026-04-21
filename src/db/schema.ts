@@ -114,5 +114,6 @@ export interface UserSettings {
   firstDayOfWeek: 'monday' | 'sunday'
   syncCondition: 'wifi' | 'wifi_and_mobile' | 'manual'
   googleConnected: boolean
+  googleEmail?: string
   lastSyncedAt?: string
 }

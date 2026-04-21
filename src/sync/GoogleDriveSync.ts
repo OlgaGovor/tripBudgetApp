@@ -6,10 +6,10 @@ declare const google: any
 
 const FOLDER_NAME = 'TripBudget'
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string
-const SCOPES = 'https://www.googleapis.com/auth/drive'
+const SCOPES = 'https://www.googleapis.com/auth/drive email'
 
 type TokenClient = {
-  requestAccessToken: (opts?: { prompt?: string }) => void
+  requestAccessToken: (opts?: { prompt?: string; hint?: string }) => void
 }
 
 let tokenClient: TokenClient | null = null
@@ -42,11 +42,11 @@ export function requestSignIn(onConnected?: () => void): void {
       }
     },
   })
-  tokenClient?.requestAccessToken({ prompt: 'consent' })
+  tokenClient?.requestAccessToken({ prompt: 'select_account' })
 }
 
 /** Re-acquire a token silently (no consent screen if already granted). Used on app restart. */
-export function requestTokenQuiet(onSuccess: () => void, onFail?: () => void): void {
+export function requestTokenQuiet(onSuccess: () => void, onFail?: () => void, loginHint?: string): void {
   if (typeof google === 'undefined') { onFail?.(); return }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
@@ -57,7 +57,20 @@ export function requestTokenQuiet(onSuccess: () => void, onFail?: () => void): v
     },
   })
   tokenClient = client
-  client.requestAccessToken({ prompt: '' })
+  client.requestAccessToken({ prompt: '', hint: loginHint })
+}
+
+/** Fetch the signed-in user's email via tokeninfo (works with drive scope, no extra scopes needed). */
+export async function fetchUserEmail(): Promise<string | null> {
+  if (!accessToken) return null
+  try {
+    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return (data.email as string) ?? null
+  } catch {
+    return null
+  }
 }
 
 export function signOut(): void {

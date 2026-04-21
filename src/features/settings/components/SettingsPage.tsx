@@ -8,7 +8,7 @@ import { homeOutline } from 'ionicons/icons'
 import { useHistory } from 'react-router-dom'
 import { SettingsRepository } from '../../../db/repositories/SettingsRepository'
 import { ExpenseCategoryRepository } from '../../../db/repositories/ExpenseCategoryRepository'
-import { requestSignIn, requestTokenQuiet, signOut, isSignedIn } from '../../../sync/GoogleDriveSync'
+import { requestSignIn, requestTokenQuiet, signOut, isSignedIn, fetchUserEmail } from '../../../sync/GoogleDriveSync'
 import { syncNow } from '../../../sync/SyncManager'
 import CategoryEditor from './CategoryEditor'
 import DataManagementSection from './DataManagementSection'
@@ -32,11 +32,14 @@ const SettingsPage: React.FC = () => {
     try {
       if (!isSignedIn()) {
         await new Promise<void>((resolve, reject) =>
-          requestTokenQuiet(resolve, reject)
+          requestTokenQuiet(resolve, reject, settings?.googleEmail)
         )
       }
       await syncNow()
       setSyncResult('ok')
+      if (!settings?.googleEmail) {
+        fetchUserEmail().then(email => { if (email) SettingsRepository.update({ googleEmail: email }) })
+      }
     } catch {
       setSyncResult('error')
     } finally {
@@ -62,10 +65,17 @@ const SettingsPage: React.FC = () => {
         <SectionHeader title="ACCOUNT & SYNC" />
         <IonList>
           <IonItem>
-            <IonLabel>{settings.googleConnected ? 'Google Drive connected' : 'Google Drive'}</IonLabel>
+            <IonLabel>
+              <div>Google Drive {settings.googleConnected ? 'connected' : ''}</div>
+              {settings.googleEmail && <div style={{ fontSize: '0.8rem', color: 'var(--ion-color-medium)' }}>{settings.googleEmail}</div>}
+            </IonLabel>
             {settings.googleConnected
-              ? <IonButton slot="end" fill="outline" color="danger" onClick={async () => { signOut(); await SettingsRepository.update({ googleConnected: false }) }}>Sign out</IonButton>
-              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => { await SettingsRepository.update({ googleConnected: true }); syncNow().catch(() => {}) })}>Sign in</IonButton>
+              ? <IonButton slot="end" fill="outline" color="danger" onClick={async () => { signOut(); await SettingsRepository.update({ googleConnected: false, googleEmail: undefined }) }}>Sign out</IonButton>
+              : <IonButton slot="end" fill="outline" onClick={() => requestSignIn(async () => {
+                  const email = await fetchUserEmail()
+                  await SettingsRepository.update({ googleConnected: true, ...(email ? { googleEmail: email } : {}) })
+                  syncNow().catch(() => {})
+                })}>Sign in</IonButton>
             }
           </IonItem>
           {settings.lastSyncedAt && (
