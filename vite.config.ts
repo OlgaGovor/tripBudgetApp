@@ -25,9 +25,9 @@ export default defineConfig({
             options: { cacheName: 'frankfurter-rates', networkTimeoutSeconds: 5 },
           },
           {
-            urlPattern: /^https:\/\/nominatim\.openstreetmap\.org\//,
+            urlPattern: /^https:\/\/photon\.komoot\.io\//,
             handler: 'NetworkFirst',
-            options: { cacheName: 'nominatim', networkTimeoutSeconds: 5 },
+            options: { cacheName: 'photon', networkTimeoutSeconds: 5 },
           },
           {
             urlPattern: /^https:\/\/router\.project-osrm\.org\//,
