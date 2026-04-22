@@ -43,33 +43,35 @@ async function canSync(): Promise<boolean> {
   return true
 }
 
+async function performFullSync(): Promise<void> {
+  const { importTrip } = await import('../lib/exportImport')
+
+  const filenames = await listTripFiles()
+  const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
+  for (const filename of tripFiles) {
+    const json = await downloadFile(filename)
+    if (!json) continue
+    const bundle = JSON.parse(json)
+    if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
+    const local = await db.trips.get(bundle.trip.id)
+    if (local && local.updatedAt >= bundle.trip.updatedAt) continue
+    await importTrip(json, 'replace')
+  }
+
+  const trips = await db.trips.toArray()
+  for (const t of trips) {
+    const json = await exportTrip(t.id)
+    await uploadFile(`trip_${t.id}.json`, json)
+  }
+
+  await SettingsRepository.update({ lastSyncedAt: new Date().toISOString() })
+}
+
 export async function syncNow(): Promise<void> {
   if (!isSignedIn()) throw new Error('Not signed in')
   setStatus('syncing')
   try {
-    const { importTrip } = await import('../lib/exportImport')
-
-    // 1. Download first: update local with anything newer from Drive
-    const filenames = await listTripFiles()
-    const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
-    for (const filename of tripFiles) {
-      const json = await downloadFile(filename)
-      if (!json) continue
-      const bundle = JSON.parse(json)
-      if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
-      const local = await db.trips.get(bundle.trip.id)
-      if (local && local.updatedAt >= bundle.trip.updatedAt) continue
-      await importTrip(json, 'replace')
-    }
-
-    // 2. Upload after: local now has the freshest data for every trip
-    const trips = await db.trips.toArray()
-    for (const t of trips) {
-      const json = await exportTrip(t.id)
-      await uploadFile(`trip_${t.id}.json`, json)
-    }
-
-    await SettingsRepository.update({ lastSyncedAt: new Date().toISOString() })
+    await performFullSync()
     setStatus('synced')
   } catch (e) {
     setStatus(navigator.onLine ? 'error' : 'offline')
@@ -106,19 +108,7 @@ export async function downloadAll(): Promise<void> {
   if (!isSignedIn()) return
   setStatus('syncing')
   try {
-    const filenames = await listTripFiles()
-    const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
-    const { importTrip } = await import('../lib/exportImport')
-    for (const filename of tripFiles) {
-      const json = await downloadFile(filename)
-      if (!json) continue
-      const bundle = JSON.parse(json)
-      if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
-      const local = await db.trips.get(bundle.trip.id)
-      if (local && local.updatedAt >= bundle.trip.updatedAt) continue
-      await importTrip(json, 'replace')
-    }
-    await SettingsRepository.update({ lastSyncedAt: new Date().toISOString() })
+    await performFullSync()
     setStatus('synced')
   } catch {
     setStatus(navigator.onLine ? 'error' : 'offline')
