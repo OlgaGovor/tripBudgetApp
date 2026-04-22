@@ -30,11 +30,9 @@ const SettingsPage: React.FC = () => {
     setSyncing(true)
     setSyncResult(null)
     try {
-      if (!isSignedIn()) {
-        await new Promise<void>((resolve, reject) =>
-          requestTokenQuiet(resolve, reject, settings?.googleEmail)
-        )
-      }
+      await new Promise<void>((resolve, reject) =>
+        requestTokenQuiet(resolve, reject, settings?.googleEmail)
+      )
       await syncNow()
       setSyncResult('ok')
       if (!settings?.googleEmail) {
