@@ -1,11 +1,7 @@
 import { exportTrip } from '../lib/exportImport'
-import { uploadFile, downloadFile, listTripFiles, isSignedIn, requestTokenQuiet } from './GoogleDriveSync'
+import { uploadFile, downloadFile, listTripFiles, isSignedIn } from './GoogleDriveSync'
 import { SettingsRepository } from '../db/repositories/SettingsRepository'
 import { db } from '../db/db'
-
-function tryRefreshTokenSilently(loginHint?: string): Promise<void> {
-  return new Promise(resolve => requestTokenQuiet(resolve, resolve, loginHint))
-}
 
 export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error'
 
@@ -101,11 +97,7 @@ export async function uploadTrip(tripId?: string): Promise<void> {
 }
 
 export async function downloadAll(): Promise<void> {
-  const settings = await SettingsRepository.get()
-  if (!settings.googleConnected) return
-  if (!(await canSync())) return
-  await tryRefreshTokenSilently(settings.googleEmail)
-  if (!isSignedIn()) return
+  if (!isSignedIn() || !(await canSync())) return
   setStatus('syncing')
   try {
     await performFullSync()

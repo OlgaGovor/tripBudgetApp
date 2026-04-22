@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { IonApp, setupIonicReact } from '@ionic/react'
 import App from './App'
 import { ExpenseCategoryRepository } from './db/repositories/ExpenseCategoryRepository'
-import { startAutoSync } from './sync/SyncManager'
+import { startAutoSync, downloadAll } from './sync/SyncManager'
 import { requestTokenQuiet, fetchUserEmail } from './sync/GoogleDriveSync'
 import { SettingsRepository } from './db/repositories/SettingsRepository'
 
@@ -40,7 +40,10 @@ SettingsRepository.get().then(s => {
   function tryRestore() {
     if (typeof (window as any).google !== 'undefined') {
       requestTokenQuiet(
-        () => { fetchUserEmail().then(email => { if (email) SettingsRepository.update({ googleEmail: email }) }) },
+        () => {
+          fetchUserEmail().then(email => { if (email) SettingsRepository.update({ googleEmail: email }) })
+          downloadAll().catch(() => {})
+        },
         undefined,
         s.googleEmail,
       )
