@@ -33,7 +33,7 @@ L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, 
 setupIonicReact()
 startAutoSync()
 
-// Silently restore Google token if user was previously connected
+// Silently restore Google token on page load. GIS script loads async, so poll until ready.
 SettingsRepository.get().then(s => {
   if (!s.googleConnected) return
   let attempts = 0
@@ -46,10 +46,11 @@ SettingsRepository.get().then(s => {
       )
       return
     }
-    if (++attempts < 20) setTimeout(tryRestore, 300) // give up after ~6s (offline / script blocked)
+    if (++attempts < 20) setTimeout(tryRestore, 300)
   }
   tryRestore()
 })
+
 if (navigator.storage?.persist) {
   navigator.storage.persist()
 }

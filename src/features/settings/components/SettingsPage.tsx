@@ -24,15 +24,24 @@ const SettingsPage: React.FC = () => {
   const settings = SettingsRepository.use()
   const categories = ExpenseCategoryRepository.useAll() ?? []
   const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<'ok' | 'error' | null>(null)
+  const [syncResult, setSyncResult] = useState<'ok' | 'error' | 'needs-login' | null>(null)
 
   async function handleSyncNow() {
     setSyncing(true)
     setSyncResult(null)
     try {
-      await new Promise<void>((resolve, reject) =>
-        requestTokenQuiet(resolve, reject, settings?.googleEmail)
+      const tokenOk = await new Promise<boolean>(resolve =>
+        requestTokenQuiet(() => resolve(true), () => resolve(false), settings?.googleEmail)
       )
+      if (!tokenOk) {
+        if (navigator.onLine) {
+          await SettingsRepository.update({ googleConnected: false })
+          setSyncResult('needs-login')
+        } else {
+          setSyncResult('error')
+        }
+        return
+      }
       await syncNow()
       setSyncResult('ok')
       if (!settings?.googleEmail) {
@@ -104,6 +113,7 @@ const SettingsPage: React.FC = () => {
                 {syncing ? <IonSpinner name="crescent" style={{ width: 18, height: 18 }} /> : 'Sync now'}
               </IonButton>
               {!syncing && syncResult === 'error' && <span style={{ fontSize: '0.8rem', color: 'var(--ion-color-danger)', marginTop: 6 }}>Sync failed — check connection</span>}
+              {!syncing && syncResult === 'needs-login' && <span style={{ fontSize: '0.8rem', color: 'var(--ion-color-warning)', marginTop: 6 }}>Session expired — please sign in again</span>}
             </div>
           </IonItem>
         </IonList>

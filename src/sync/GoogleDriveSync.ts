@@ -94,6 +94,7 @@ async function findOrCreateFolder(): Promise<string> {
   const res = await driveRequest(
     `/files?q=name%3D'${FOLDER_NAME}'+and+mimeType%3D'application%2Fvnd.google-apps.folder'+and+trashed%3Dfalse&fields=files(id)`
   )
+  if (!res.ok) throw new Error(`Drive folder search failed: ${res.status}`)
   const data = await res.json()
   if (data.files?.length) return data.files[0].id as string
   const createRes = await driveRequest('/files', {
@@ -101,6 +102,7 @@ async function findOrCreateFolder(): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }),
   })
+  if (!createRes.ok) throw new Error(`Drive folder create failed: ${createRes.status}`)
   const created = await createRes.json()
   return created.id as string
 }
@@ -109,6 +111,7 @@ async function findFile(folderId: string, filename: string): Promise<string | nu
   const res = await driveRequest(
     `/files?q=name%3D'${filename}'+and+'${folderId}'+in+parents+and+trashed%3Dfalse&fields=files(id)`
   )
+  if (!res.ok) throw new Error(`Drive file search failed: ${res.status}`)
   const data = await res.json()
   return data.files?.[0]?.id ?? null
 }
