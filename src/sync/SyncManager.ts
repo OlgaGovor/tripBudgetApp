@@ -109,13 +109,14 @@ export async function downloadAll(): Promise<void> {
 
 export function startAutoSync(): () => void {
   function handleVisibility() {
-    if (document.visibilityState === 'visible') downloadAll()
+    if (document.visibilityState === 'hidden' && isSignedIn()) {
+      if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null }
+      uploadTrip().catch(() => {})
+    }
   }
   if (!navigator.onLine) setStatus('offline')
   document.addEventListener('visibilitychange', handleVisibility)
   window.addEventListener('offline', () => setStatus('offline'))
   window.addEventListener('online', () => { if (isSignedIn()) setStatus('synced') })
-  return () => {
-    document.removeEventListener('visibilitychange', handleVisibility)
-  }
+  return () => document.removeEventListener('visibilitychange', handleVisibility)
 }
