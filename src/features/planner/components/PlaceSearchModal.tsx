@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton,
   IonSearchbar, IonList, IonItem, IonLabel, IonSpinner,
@@ -13,6 +13,7 @@ interface Props {
 }
 
 const PlaceSearchModal: React.FC<Props> = ({ isOpen, onDismiss, onSelect, title = 'Search place' }) => {
+  const searchbarRef = useRef<HTMLIonSearchbarElement>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<PlaceResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,7 +46,7 @@ const PlaceSearchModal: React.FC<Props> = ({ isOpen, onDismiss, onSelect, title 
   }
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onDismiss}>
+    <IonModal isOpen={isOpen} onDidDismiss={onDismiss} onDidPresent={() => searchbarRef.current?.setFocus()}>
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
@@ -56,6 +57,7 @@ const PlaceSearchModal: React.FC<Props> = ({ isOpen, onDismiss, onSelect, title 
       </IonHeader>
       <IonContent>
         <IonSearchbar
+          ref={searchbarRef}
           value={query}
           onIonInput={e => handleSearch(e.detail.value ?? '')}
           placeholder="Search for a place..."
