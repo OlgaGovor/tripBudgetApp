@@ -116,4 +116,5 @@ export interface UserSettings {
   googleConnected: boolean
   googleEmail?: string
   lastSyncedAt?: string
+  categoriesUpdatedAt?: string
 }

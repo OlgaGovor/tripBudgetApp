@@ -42,6 +42,25 @@ async function canSync(): Promise<boolean> {
 async function performFullSync(): Promise<void> {
   const { importTrip } = await import('../lib/exportImport')
 
+  // Sync categories (last-write wins by timestamp)
+  const settings = await SettingsRepository.get()
+  const remoteCategoriesJson = await downloadFile('categories.json')
+  if (remoteCategoriesJson) {
+    const remote = JSON.parse(remoteCategoriesJson) as { updatedAt: string; categories: any[] }
+    if (remote.updatedAt > (settings.categoriesUpdatedAt ?? '')) {
+      await db.expenseCategories.clear()
+      await db.expenseCategories.bulkPut(remote.categories)
+      await SettingsRepository.update({ categoriesUpdatedAt: remote.updatedAt })
+    }
+  }
+  const localSettings = await SettingsRepository.get()
+  const categories = await db.expenseCategories.toArray()
+  await uploadFile('categories.json', JSON.stringify({
+    updatedAt: localSettings.categoriesUpdatedAt ?? new Date().toISOString(),
+    categories,
+  }))
+
+  // Sync trips
   const filenames = await listTripFiles()
   const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
   for (const filename of tripFiles) {
