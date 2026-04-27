@@ -26,7 +26,6 @@ export const ExpenseCategoryRepository = {
     await db.expenseCategories.bulkAdd(
       DEFAULT_CATEGORIES.map(c => ({ ...c, id: `cat-${c.label.toLowerCase()}` }))
     )
-    await markUpdated()
   },
 
   async create(input: Omit<ExpenseCategory, 'id'>): Promise<string> {

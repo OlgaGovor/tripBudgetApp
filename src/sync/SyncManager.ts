@@ -54,11 +54,13 @@ async function performFullSync(): Promise<void> {
     }
   }
   const localSettings = await SettingsRepository.get()
-  const categories = await db.expenseCategories.toArray()
-  await uploadFile('categories.json', JSON.stringify({
-    updatedAt: localSettings.categoriesUpdatedAt ?? new Date().toISOString(),
-    categories,
-  }))
+  if (localSettings.categoriesUpdatedAt) {
+    const categories = await db.expenseCategories.toArray()
+    await uploadFile('categories.json', JSON.stringify({
+      updatedAt: localSettings.categoriesUpdatedAt,
+      categories,
+    }))
+  }
 
   // Sync trips
   const filenames = await listTripFiles()
