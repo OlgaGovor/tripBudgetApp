@@ -51,14 +51,21 @@ export async function importTrip(json: string, mode: 'replace' | 'merge'): Promi
       await db.transportLegs.where('tripId').equals(bundle.trip.id).delete()
       await db.accommodations.where('tripId').equals(bundle.trip.id).delete()
       await db.expenses.where('tripId').equals(bundle.trip.id).delete()
-      await db.packingItems.where('tripId').equals(bundle.trip.id).delete()
+      // Only replace packing items if the bundle actually contains them.
+      // Old bundles exported before packing was implemented won't have this field,
+      // and wiping local items when it's absent would silently destroy user data.
+      if (bundle.packingItems !== undefined) {
+        await db.packingItems.where('tripId').equals(bundle.trip.id).delete()
+      }
     }
-    await db.days.bulkPut(bundle.days)
-    await db.stops.bulkPut(bundle.stops)
-    await db.transportLegs.bulkPut(bundle.transportLegs)
-    await db.accommodations.bulkPut(bundle.accommodations)
-    await db.expenses.bulkPut(bundle.expenses)
-    await db.packingItems.bulkPut(bundle.packingItems)
+    await db.days.bulkPut(bundle.days ?? [])
+    await db.stops.bulkPut(bundle.stops ?? [])
+    await db.transportLegs.bulkPut(bundle.transportLegs ?? [])
+    await db.accommodations.bulkPut(bundle.accommodations ?? [])
+    await db.expenses.bulkPut(bundle.expenses ?? [])
+    if (bundle.packingItems !== undefined) {
+      await db.packingItems.bulkPut(bundle.packingItems)
+    }
   })
 }
 

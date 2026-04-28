@@ -65,18 +65,27 @@ async function performFullSync(): Promise<void> {
   // Sync trips
   const filenames = await listTripFiles()
   const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
+  // Track what updatedAt each trip has on Drive so we can skip redundant uploads
+  const driveUpdatedAt: Record<string, string> = {}
+
   for (const filename of tripFiles) {
     const json = await downloadFile(filename)
     if (!json) continue
     const bundle = JSON.parse(json)
     if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
+    driveUpdatedAt[bundle.trip.id] = bundle.trip.updatedAt
     const local = await db.trips.get(bundle.trip.id)
     if (local && local.updatedAt >= bundle.trip.updatedAt) continue
     await importTrip(json, 'replace')
   }
 
+  // Only upload trips that are strictly newer than Drive (or not on Drive yet).
+  // Skipping equal-timestamp trips prevents a device that has the same updatedAt
+  // but fewer packing items from overwriting a Drive copy that has more items.
   const trips = await db.trips.toArray()
   for (const t of trips) {
+    const driveCurrent = driveUpdatedAt[t.id]
+    if (driveCurrent && t.updatedAt <= driveCurrent) continue
     const json = await exportTrip(t.id)
     await uploadFile(`trip_${t.id}.json`, json)
   }
