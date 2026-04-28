@@ -14,6 +14,7 @@ type TokenClient = {
 
 let tokenClient: TokenClient | null = null
 let accessToken: string | null = null
+let folderIdCache: string | null = null
 
 export function initGoogleAuth(onToken: (token: string) => void): void {
   if (typeof google === 'undefined') return
@@ -76,6 +77,7 @@ export async function fetchUserEmail(): Promise<string | null> {
 export function signOut(): void {
   if (accessToken && typeof google !== 'undefined') google.accounts.oauth2.revoke(accessToken, () => {})
   accessToken = null
+  folderIdCache = null
 }
 
 export function isSignedIn(): boolean {
@@ -91,12 +93,13 @@ async function driveRequest(path: string, options: RequestInit = {}): Promise<Re
 }
 
 async function findOrCreateFolder(): Promise<string> {
+  if (folderIdCache) return folderIdCache
   const res = await driveRequest(
     `/files?q=name%3D'${FOLDER_NAME}'+and+mimeType%3D'application%2Fvnd.google-apps.folder'+and+trashed%3Dfalse&fields=files(id)`
   )
   if (!res.ok) throw new Error(`Drive folder search failed: ${res.status}`)
   const data = await res.json()
-  if (data.files?.length) return data.files[0].id as string
+  if (data.files?.length) { folderIdCache = data.files[0].id as string; return folderIdCache! }
   const createRes = await driveRequest('/files', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -104,7 +107,8 @@ async function findOrCreateFolder(): Promise<string> {
   })
   if (!createRes.ok) throw new Error(`Drive folder create failed: ${createRes.status}`)
   const created = await createRes.json()
-  return created.id as string
+  folderIdCache = created.id as string
+  return folderIdCache!
 }
 
 async function findFile(folderId: string, filename: string): Promise<string | null> {

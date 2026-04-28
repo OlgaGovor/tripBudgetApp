@@ -20,7 +20,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/api\.frankfurter\.app\//,
+            urlPattern: /^https:\/\/api\.frankfurter\.dev\//,
             handler: 'NetworkFirst',
             options: { cacheName: 'frankfurter-rates', networkTimeoutSeconds: 5 },
           },

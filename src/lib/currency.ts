@@ -11,7 +11,9 @@ export async function getExchangeRates(): Promise<{ rates: Record<string, number
   if (cached && isFresh) return { rates: { EUR: 1, ...cached.rates }, stale: false }
 
   try {
-    const res = await fetch(FRANKFURTER_URL)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5_000)
+    const res = await fetch(FRANKFURTER_URL, { signal: controller.signal }).finally(() => clearTimeout(timeout))
     if (!res.ok) throw new Error('Frankfurter error')
     // v2 returns an array: [{base, quote, rate, date}, ...]
     const data: Array<{ quote: string; rate: number }> = await res.json()

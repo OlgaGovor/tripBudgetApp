@@ -42,7 +42,7 @@ SettingsRepository.get().then(s => {
       requestTokenQuiet(
         () => {
           fetchUserEmail().then(email => { if (email) SettingsRepository.update({ googleEmail: email }) })
-          downloadAll().catch(() => {})
+          setTimeout(() => downloadAll().catch(() => {}), 3_000)
         },
         undefined,
         s.googleEmail,
