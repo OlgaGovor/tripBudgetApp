@@ -14,6 +14,7 @@ import { db } from '../../../db/db'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import CalendarGrid from './CalendarGrid'
 import { getDayCardStatus, type BudgetStatus } from '../../../lib/budget'
+import { useProgressiveCount } from '../../../lib/useProgressiveCount'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -56,18 +57,29 @@ const CalendarPage: React.FC = () => {
     [trip]
   )
 
+  const targetMonthKey = useMemo(() => {
+    if (!trip) return ''
+    return ((today >= trip.startDate && today <= trip.endDate) ? today : trip.startDate).slice(0, 7)
+  }, [trip, today])
+
+  const targetMonthIndex = useMemo(() => {
+    if (!months.length) return 0
+    const idx = months.findIndex(m => `${m.year}-${String(m.month + 1).padStart(2, '0')}` === targetMonthKey)
+    return idx === -1 ? 0 : idx
+  }, [months, targetMonthKey])
+
+  const visibleMonthCount = useProgressiveCount(months.length, targetMonthIndex + 1)
+
   // Scroll to the right month once months are available
   const monthRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrolled = useRef(false)
   useEffect(() => {
-    if (!trip || scrolled.current || months.length === 0) return
+    if (!trip || scrolled.current || months.length === 0 || !targetMonthKey) return
     scrolled.current = true
-    const targetDate = (today >= trip.startDate && today <= trip.endDate) ? today : trip.startDate
-    const key = targetDate.slice(0, 7)
     requestAnimationFrame(() => {
-      monthRefs.current[key]?.scrollIntoView({ behavior: 'instant' })
+      monthRefs.current[targetMonthKey]?.scrollIntoView({ behavior: 'instant' })
     })
-  }, [months]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [months, targetMonthKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const effectiveDailyBudget: number | undefined = trip
     ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))
@@ -99,7 +111,7 @@ const CalendarPage: React.FC = () => {
       </IonHeader>
       <IonContent>
         <div style={{ padding: '0 4px 2rem' }}>
-          {months.map(({ year, month }) => {
+          {months.slice(0, visibleMonthCount).map(({ year, month }) => {
             const key = `${year}-${String(month + 1).padStart(2, '0')}`
             return (
               <div key={key} ref={el => { monthRefs.current[key] = el }}>

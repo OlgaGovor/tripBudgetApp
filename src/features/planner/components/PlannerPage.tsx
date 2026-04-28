@@ -9,6 +9,7 @@ import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { TripRepository } from '../../../db/repositories/TripRepository'
 import DayCard from './DayCard'
 import TripFormModal from '../../trips/components/TripFormModal'
+import { useProgressiveCount } from '../../../lib/useProgressiveCount'
 
 const PlannerPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
@@ -19,6 +20,8 @@ const PlannerPage: React.FC = () => {
   const { expenses } = useExpenses(tripId)
   const history = useHistory()
   const [showEditTrip, setShowEditTrip] = useState(false)
+
+  const visibleDayCount = useProgressiveCount(days.length, 5)
 
   const effectiveDailyBudget: number | undefined = trip
     ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))
@@ -53,7 +56,7 @@ const PlannerPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        {days.map((day) => (
+        {days.slice(0, visibleDayCount).map((day) => (
           <DayCard
             key={day.id}
             day={day}

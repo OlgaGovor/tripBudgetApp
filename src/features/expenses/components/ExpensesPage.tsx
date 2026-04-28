@@ -12,6 +12,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import BudgetBar from './BudgetBar'
 import ExpenseFormModal from './ExpenseFormModal'
 import type { Expense } from '../../../db/schema'
+import { useProgressiveCount } from '../../../lib/useProgressiveCount'
 
 const ExpensesPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
@@ -26,12 +27,16 @@ const ExpensesPage: React.FC = () => {
     ExpenseRepository.getTotalConverted(tripId).then(setTotalSpent)
   }, [expenses, tripId])
 
-  if (!trip) return null
+  const sortedSections = Object.entries(
+    expenses.reduce<Record<string, typeof expenses>>((acc, e) => {
+      acc[e.date] = [...(acc[e.date] ?? []), e]
+      return acc
+    }, {})
+  ).sort(([a], [b]) => b.localeCompare(a))
 
-  const byDate = expenses.reduce<Record<string, typeof expenses>>((acc, e) => {
-    acc[e.date] = [...(acc[e.date] ?? []), e]
-    return acc
-  }, {})
+  const visibleSectionCount = useProgressiveCount(sortedSections.length, 5)
+
+  if (!trip) return null
 
   const categoryById = Object.fromEntries(categories.map(c => [c.id, c]))
 
@@ -63,7 +68,7 @@ const ExpensesPage: React.FC = () => {
         {expenses.length === 0 && (
           <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--ion-color-medium)' }}>No expenses yet</p>
         )}
-        {Object.entries(byDate).sort(([a], [b]) => b.localeCompare(a)).map(([date, items], sectionIdx) => (
+        {sortedSections.slice(0, visibleSectionCount).map(([date, items], sectionIdx) => (
           <div key={date}>
             <div style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ion-color-medium)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: sectionIdx > 0 ? '1px solid var(--ion-color-light-shade)' : undefined }}>
               <span>{new Date(date + 'T00:00:00Z').toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
