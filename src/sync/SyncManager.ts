@@ -45,16 +45,17 @@ async function performFullSync(): Promise<void> {
   // Sync categories (last-write wins by timestamp)
   const settings = await SettingsRepository.get()
   const remoteCategoriesJson = await downloadFile('categories.json')
-  if (remoteCategoriesJson) {
+  const remoteCategoriesUpdatedAt = remoteCategoriesJson
+    ? (JSON.parse(remoteCategoriesJson) as { updatedAt: string; categories: any[] }).updatedAt
+    : ''
+  if (remoteCategoriesJson && remoteCategoriesUpdatedAt > (settings.categoriesUpdatedAt ?? '')) {
     const remote = JSON.parse(remoteCategoriesJson) as { updatedAt: string; categories: any[] }
-    if (remote.updatedAt > (settings.categoriesUpdatedAt ?? '')) {
-      await db.expenseCategories.clear()
-      await db.expenseCategories.bulkPut(remote.categories)
-      await SettingsRepository.update({ categoriesUpdatedAt: remote.updatedAt })
-    }
+    await db.expenseCategories.clear()
+    await db.expenseCategories.bulkPut(remote.categories)
+    await SettingsRepository.update({ categoriesUpdatedAt: remote.updatedAt })
   }
   const localSettings = await SettingsRepository.get()
-  if (localSettings.categoriesUpdatedAt) {
+  if (localSettings.categoriesUpdatedAt && localSettings.categoriesUpdatedAt > remoteCategoriesUpdatedAt) {
     const categories = await db.expenseCategories.toArray()
     await uploadFile('categories.json', JSON.stringify({
       updatedAt: localSettings.categoriesUpdatedAt,
@@ -65,8 +66,11 @@ async function performFullSync(): Promise<void> {
   // Sync trips
   const filenames = await listTripFiles()
   const tripFiles = filenames.filter(f => f.startsWith('trip_') && f.endsWith('.json'))
-  // Track what updatedAt each trip has on Drive so we can skip redundant uploads
+  // Track Drive's updatedAt per trip so we can decide whether to upload.
   const driveUpdatedAt: Record<string, string> = {}
+  // Trips where we merged packing items from Drive into a locally-newer trip.
+  // These need to be uploaded even though local.updatedAt <= driveUpdatedAt.
+  const needsUpload = new Set<string>()
 
   for (const filename of tripFiles) {
     const json = await downloadFile(filename)
@@ -75,17 +79,34 @@ async function performFullSync(): Promise<void> {
     if (!bundle.trip?.id || !bundle.trip?.updatedAt) continue
     driveUpdatedAt[bundle.trip.id] = bundle.trip.updatedAt
     const local = await db.trips.get(bundle.trip.id)
-    if (local && local.updatedAt >= bundle.trip.updatedAt) continue
+
+    if (local && local.updatedAt >= bundle.trip.updatedAt) {
+      // Local trip is same or newer — skip full replace.
+      // But still merge in any packing items from Drive that we don't have locally.
+      // This handles the case where packing items were added on another device whose
+      // trip.updatedAt lost the last-write-wins race against a local non-packing change.
+      const driveItems: Array<{ id: string }> = (bundle.packingItems as any[]) ?? []
+      if (driveItems.length) {
+        const localIds = new Set(
+          (await db.packingItems.where('tripId').equals(bundle.trip.id).toArray()).map(i => i.id)
+        )
+        const incoming = driveItems.filter(i => !localIds.has(i.id))
+        if (incoming.length) {
+          await db.packingItems.bulkPut(incoming as any)
+          needsUpload.add(bundle.trip.id)
+        }
+      }
+      continue
+    }
     await importTrip(json, 'replace')
   }
 
-  // Only upload trips that are strictly newer than Drive (or not on Drive yet).
-  // Skipping equal-timestamp trips prevents a device that has the same updatedAt
-  // but fewer packing items from overwriting a Drive copy that has more items.
+  // Upload trips that are strictly newer than Drive, not on Drive yet, or had
+  // packing items merged in (so Drive gets the combined result).
   const trips = await db.trips.toArray()
   for (const t of trips) {
     const driveCurrent = driveUpdatedAt[t.id]
-    if (driveCurrent && t.updatedAt <= driveCurrent) continue
+    if (driveCurrent && t.updatedAt <= driveCurrent && !needsUpload.has(t.id)) continue
     const json = await exportTrip(t.id)
     await uploadFile(`trip_${t.id}.json`, json)
   }

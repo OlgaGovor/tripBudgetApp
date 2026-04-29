@@ -150,9 +150,18 @@ export async function downloadFile(filename: string): Promise<string | null> {
 
 export async function listTripFiles(): Promise<string[]> {
   const folderId = await findOrCreateFolder()
-  const res = await driveRequest(
-    `/files?q='${folderId}'+in+parents+and+trashed%3Dfalse&fields=files(name)`
-  )
-  const data = await res.json()
-  return (data.files ?? []).map((f: { name: string }) => f.name) as string[]
+  const names: string[] = []
+  let pageToken: string | undefined
+
+  do {
+    const query = `/files?q='${folderId}'+in+parents+and+trashed%3Dfalse&fields=files(name),nextPageToken&pageSize=1000`
+      + (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '')
+    const res = await driveRequest(query)
+    if (!res.ok) throw new Error(`Drive file listing failed: ${res.status}`)
+    const data = await res.json()
+    names.push(...(data.files ?? []).map((f: { name: string }) => f.name))
+    pageToken = data.nextPageToken
+  } while (pageToken)
+
+  return names
 }
