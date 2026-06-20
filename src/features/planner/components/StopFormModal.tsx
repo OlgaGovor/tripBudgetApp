@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons,
-  IonButton, IonItem, IonLabel, IonInput, IonSpinner,
+  IonButton, IonIcon, IonItem, IonLabel, IonInput, IonSpinner, IonAlert,
 } from '@ionic/react'
+import { trashOutline } from 'ionicons/icons'
+import { db } from '../../../db/db'
 import { StopRepository } from '../../../db/repositories/StopRepository'
 import type { Stop } from '../../../db/schema'
 import { searchPlaces, type PlaceResult } from '../../../lib/geocoding'
@@ -23,8 +26,22 @@ const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, da
   const [results, setResults] = useState<PlaceResult[]>([])
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLIonInputElement>(null)
+
+  const usedInTransport = useLiveQuery(
+    async () => {
+      if (!stop) return false
+      const [fromLeg, toLeg] = await Promise.all([
+        db.transportLegs.where('fromStopId').equals(stop.id).first(),
+        db.transportLegs.where('toStopId').equals(stop.id).first(),
+      ])
+      return !!fromLeg || !!toLeg
+    },
+    [stop?.id],
+    false
+  )
 
   useEffect(() => {
     if (!isOpen) return
@@ -66,6 +83,12 @@ const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, da
     setShowDropdown(false); setResults([])
   }
 
+  async function handleDelete() {
+    if (!stop) return
+    await db.stops.delete(stop.id)
+    onDismiss()
+  }
+
   async function handleSave() {
     if (!placeName.trim()) return
     if (stop) {
@@ -87,6 +110,16 @@ const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, da
           <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
           <IonTitle>{stop ? 'Edit Stop' : 'Add Stop'}</IonTitle>
           <IonButtons slot="end">
+            {stop && (
+              <IonButton
+                color="danger"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={usedInTransport}
+                title={usedInTransport ? 'Used in a transport leg — remove the transport first' : undefined}
+              >
+                <IonIcon slot="icon-only" icon={trashOutline} />
+              </IonButton>
+            )}
             <IonButton strong onClick={handleSave} disabled={!placeName.trim()}>Save</IonButton>
           </IonButtons>
         </IonToolbar>
@@ -154,6 +187,17 @@ const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, da
           <IonInput value={placeLink} onIonInput={e => setPlaceLink(e.detail.value ?? '')} placeholder="https://..." />
         </IonItem>
       </IonContent>
+
+      <IonAlert
+        isOpen={showDeleteConfirm}
+        onDidDismiss={() => setShowDeleteConfirm(false)}
+        header="Delete stop?"
+        message={`Delete "${stop?.placeName ?? ''}"? This can't be undone.`}
+        buttons={[
+          { text: 'Cancel', role: 'cancel' },
+          { text: 'Delete', role: 'destructive', handler: handleDelete },
+        ]}
+      />
     </IonModal>
   )
 }

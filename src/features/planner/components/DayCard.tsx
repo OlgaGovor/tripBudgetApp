@@ -153,7 +153,6 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
                 <StopItem
                   stop={stop}
                   tripId={tripId}
-                  legsFromThisStop={stopLegs}
                   canMoveUp={i > 0}
                   canMoveDown={i < stops.length - 1}
                   onMoveUp={() => StopRepository.reorder(day.id, swapStops(i, i - 1))}
