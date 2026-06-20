@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
-  IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
+  IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonAlert,
 } from '@ionic/react'
-import { searchOutline } from 'ionicons/icons'
+import { searchOutline, trashOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import type { Stop, TransportLeg } from '../../../db/schema'
@@ -51,6 +51,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
   const [priceCurrency, setPriceCurrency] = useState('')
   const [showPlaceSearch, setShowPlaceSearch] = useState(false)
   const [showCurrencySelect, setShowCurrencySelect] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
 
@@ -97,6 +98,12 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
 
   const timeValid = !departureDateTime || !arrivalDateTime || arrivalDateTime >= departureDateTime
 
+  async function handleDelete() {
+    if (!leg) return
+    await TransportLegRepository.delete(leg.id)
+    onDismiss()
+  }
+
   async function handleSave() {
     if (!destinationName.trim() || !timeValid) return
     const parsedPrice = price ? parseFloat(price) : undefined
@@ -139,6 +146,11 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
             <IonTitle>{leg ? 'Edit Transport' : 'Add Transport'}</IonTitle>
             <IonButtons slot="end">
+              {leg && (
+                <IonButton color="danger" onClick={() => setShowDeleteConfirm(true)}>
+                  <IonIcon slot="icon-only" icon={trashOutline} />
+                </IonButton>
+              )}
               <IonButton strong onClick={handleSave} disabled={!destinationName.trim() || !timeValid}>Save</IonButton>
             </IonButtons>
           </IonToolbar>
@@ -239,6 +251,16 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         onDismiss={() => setShowCurrencySelect(false)}
         onSelect={code => setPriceCurrency(code)}
         selectedCode={priceCurrency}
+      />
+      <IonAlert
+        isOpen={showDeleteConfirm}
+        onDidDismiss={() => setShowDeleteConfirm(false)}
+        header="Delete transport?"
+        message="Delete this transport leg? This can't be undone."
+        buttons={[
+          { text: 'Cancel', role: 'cancel' },
+          { text: 'Delete', role: 'destructive', handler: handleDelete },
+        ]}
       />
     </>
   )

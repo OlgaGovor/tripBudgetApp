@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
-  IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
+  IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonAlert,
 } from '@ionic/react'
-import { searchOutline } from 'ionicons/icons'
+import { searchOutline, trashOutline } from 'ionicons/icons'
 import { AccommodationRepository } from '../../../db/repositories/AccommodationRepository'
 import type { Accommodation } from '../../../db/schema'
 import { db } from '../../../db/db'
@@ -40,6 +40,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
   const [showCurrencySelect, setShowCurrencySelect] = useState(false)
   const [price, setPrice] = useState('')
   const [priceCurrency, setPriceCurrency] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
 
@@ -79,6 +80,12 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
 
   const dateValid = !checkIn || !checkOut || checkOut > checkIn
 
+  async function handleDelete() {
+    if (!accommodation) return
+    await AccommodationRepository.delete(accommodation.id)
+    onDismiss()
+  }
+
   async function handleSave() {
     if (!name.trim() || !checkIn || !checkOut || !dateValid) return
     const parsedPrice = price ? parseFloat(price) : undefined
@@ -108,6 +115,11 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
           <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
           <IonTitle>{accommodation ? 'Edit Accommodation' : 'Add Accommodation'}</IonTitle>
           <IonButtons slot="end">
+            {accommodation && (
+              <IonButton color="danger" onClick={() => setShowDeleteConfirm(true)}>
+                <IonIcon slot="icon-only" icon={trashOutline} />
+              </IonButton>
+            )}
             <IonButton strong onClick={handleSave} disabled={!name.trim() || !checkIn || !checkOut || !dateValid}>Save</IonButton>
           </IonButtons>
         </IonToolbar>
@@ -227,6 +239,16 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       onDismiss={() => setShowCurrencySelect(false)}
       onSelect={code => setPriceCurrency(code)}
       selectedCode={priceCurrency}
+    />
+    <IonAlert
+      isOpen={showDeleteConfirm}
+      onDidDismiss={() => setShowDeleteConfirm(false)}
+      header="Delete accommodation?"
+      message={`Delete "${accommodation?.name ?? ''}"? This can't be undone.`}
+      buttons={[
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Delete', role: 'destructive', handler: handleDelete },
+      ]}
     />
     </>
   )

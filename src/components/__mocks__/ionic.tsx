@@ -42,6 +42,7 @@ export const ionicMock = {
     <input type="checkbox" checked={checked ?? false} onChange={e => onIonChange?.({ detail: { checked: e.target.checked } })} />
   ),
   IonSpinner: () => <span data-testid="spinner" />,
+  IonAlert: ({ isOpen, header }: any) => isOpen ? <div role="alertdialog">{header}</div> : null,
   IonBadge: ({ children }: any) => <span>{children}</span>,
   IonChip: ({ children }: any) => <span>{children}</span>,
   IonSearchbar: ({ value, onIonInput, placeholder }: any) => (

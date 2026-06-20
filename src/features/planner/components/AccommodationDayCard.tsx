@@ -1,9 +1,6 @@
 // src/features/planner/components/AccommodationDayCard.tsx
 import { useState } from 'react'
-import { IonButton, IonIcon } from '@ionic/react'
-import { pencilOutline, trashOutline } from 'ionicons/icons'
 import type { Accommodation } from '../../../db/schema'
-import { AccommodationRepository } from '../../../db/repositories/AccommodationRepository'
 import AccommodationFormModal from './AccommodationFormModal'
 
 const STATUS_COLORS: Record<Accommodation['status'], string> = {
@@ -49,10 +46,6 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
 
   const accom = accommodation
 
-  async function handleDelete() {
-    await AccommodationRepository.delete(accom.id)
-  }
-
   return (
     <>
       <div style={{
@@ -64,7 +57,7 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
         <span style={{ fontSize: '1rem', flexShrink: 0 }}>🏨</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, color: '#444' }}>
-            {accom.name}
+            <span onClick={() => setShowForm(true)} style={{ cursor: 'pointer' }}>{accom.name}</span>
             {accom.link && (
               <a href={accom.link} target="_blank" rel="noreferrer" style={{ marginLeft: 8, fontSize: '0.8rem' }}>🔗</a>
             )}
@@ -74,12 +67,6 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
           </div>
         </div>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[accom.status], flexShrink: 0 }} />
-        <IonButton fill="clear" size="small" onClick={() => setShowForm(true)}>
-          <IonIcon icon={pencilOutline} />
-        </IonButton>
-        <IonButton fill="clear" size="small" color="danger" onClick={handleDelete}>
-          <IonIcon icon={trashOutline} />
-        </IonButton>
       </div>
       <AccommodationFormModal
         isOpen={showForm}

@@ -1,11 +1,9 @@
 // src/features/planner/components/TransportCard.tsx
 import { useState } from 'react'
-import { IonButton, IonIcon } from '@ionic/react'
-import { pencilOutline, trashOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
-import { TransportLegRepository, isOvernightTransport } from '../../../db/repositories/TransportLegRepository'
+import { isOvernightTransport } from '../../../db/repositories/TransportLegRepository'
 import TransportLegFormModal from './TransportLegFormModal'
 
 const METHOD_ICONS: Record<TransportLeg['method'], string> = {
@@ -26,10 +24,6 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
   const arr = leg.arrivalDateTime?.slice(11, 16)
   const timeStr = dep && arr ? `${dep} → ${arr}${overnight ? ' next day' : ''}` : (dep ?? '')
 
-  async function handleDelete() {
-    await TransportLegRepository.delete(leg.id)
-  }
-
   return (
     <>
       <div style={{
@@ -41,7 +35,9 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
         <span style={{ fontSize: '1rem', flexShrink: 0 }}>{METHOD_ICONS[leg.method]}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, color: '#444' }}>
-            {fromStop?.placeName ?? '…'} → {toStop?.placeName ?? '…'}
+            <span onClick={() => setShowEdit(true)} style={{ cursor: 'pointer' }}>
+              {fromStop?.placeName ?? '…'} → {toStop?.placeName ?? '…'}
+            </span>
             {leg.bookingLink && (
               <a href={leg.bookingLink} target="_blank" rel="noreferrer" style={{ marginLeft: 8, fontSize: '0.8rem' }}>🔗</a>
             )}
@@ -54,12 +50,6 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
           </span>
         )}
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[leg.status], flexShrink: 0 }} />
-        <IonButton fill="clear" size="small" onClick={() => setShowEdit(true)}>
-          <IonIcon icon={pencilOutline} />
-        </IonButton>
-        <IonButton fill="clear" size="small" color="danger" onClick={handleDelete}>
-          <IonIcon icon={trashOutline} />
-        </IonButton>
       </div>
       <TransportLegFormModal
         isOpen={showEdit}
