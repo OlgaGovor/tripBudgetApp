@@ -43,6 +43,8 @@ export const ionicMock = {
   ),
   IonSpinner: () => <span data-testid="spinner" />,
   IonAlert: ({ isOpen, header }: any) => isOpen ? <div role="alertdialog">{header}</div> : null,
+  IonReorderGroup: ({ children }: any) => <div>{children}</div>,
+  IonReorder: ({ children }: any) => <span>{children}</span>,
   IonBadge: ({ children }: any) => <span>{children}</span>,
   IonChip: ({ children }: any) => <span>{children}</span>,
   IonSearchbar: ({ value, onIonInput, placeholder }: any) => (

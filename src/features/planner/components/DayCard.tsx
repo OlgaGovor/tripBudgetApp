@@ -1,6 +1,6 @@
 // src/features/planner/components/DayCard.tsx
 import { useState } from 'react'
-import { IonIcon } from '@ionic/react'
+import { IonIcon, IonReorderGroup, type ItemReorderEventDetail } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Accommodation, Day, TransportLeg } from '../../../db/schema'
@@ -111,10 +111,12 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
     return depDate < day.date && day.date <= arrDate
   })
 
-  function swapStops(i: number, j: number): string[] {
+  function handleReorder(event: CustomEvent<ItemReorderEventDetail>) {
     const ids = stops.map(s => s.id)
-    ;[ids[i], ids[j]] = [ids[j], ids[i]]
-    return ids
+    const [moved] = ids.splice(event.detail.from, 1)
+    ids.splice(event.detail.to, 0, moved)
+    event.detail.complete()
+    StopRepository.reorder(day.id, ids)
   }
 
   return (
@@ -146,37 +148,32 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
             <InTransitCard key={leg.id} leg={leg} />
           ))}
 
-          {stops.map((stop, i) => {
-            const stopLegs = legsForStop(stop.id)
-            return (
-              <div key={stop.id}>
-                <StopItem
-                  stop={stop}
-                  tripId={tripId}
-                  canMoveUp={i > 0}
-                  canMoveDown={i < stops.length - 1}
-                  onMoveUp={() => StopRepository.reorder(day.id, swapStops(i, i - 1))}
-                  onMoveDown={() => StopRepository.reorder(day.id, swapStops(i, i + 1))}
-                />
-                {stopLegs.length > 0
-                  ? stopLegs.map(leg => <TransportCard key={leg.id} leg={leg} />)
-                  : (
-                    <div style={{ margin: '4px 10px 7px' }}>
-                      <button
-                        onClick={() => setAddLegFromStopId(stop.id)}
-                        style={{
-                          fontSize: '0.75rem', color: '#bbb', background: 'none',
-                          border: '1px dashed #ddd', borderRadius: 10, padding: '3px 10px', cursor: 'pointer',
-                        }}
-                      >
-                        ＋ add leg after {stop.placeName}
-                      </button>
-                    </div>
-                  )
-                }
-              </div>
-            )
-          })}
+          <IonReorderGroup disabled={false} onIonItemReorder={handleReorder}>
+            {stops.map((stop) => {
+              const stopLegs = legsForStop(stop.id)
+              return (
+                <div key={stop.id}>
+                  <StopItem stop={stop} tripId={tripId} />
+                  {stopLegs.length > 0
+                    ? stopLegs.map(leg => <TransportCard key={leg.id} leg={leg} />)
+                    : (
+                      <div style={{ margin: '4px 10px 7px' }}>
+                        <button
+                          onClick={() => setAddLegFromStopId(stop.id)}
+                          style={{
+                            fontSize: '0.75rem', color: '#bbb', background: 'none',
+                            border: '1px dashed #ddd', borderRadius: 10, padding: '3px 10px', cursor: 'pointer',
+                          }}
+                        >
+                          ＋ add leg after {stop.placeName}
+                        </button>
+                      </div>
+                    )
+                  }
+                </div>
+              )
+            })}
+          </IonReorderGroup>
 
           <div
             onClick={() => setShowStopForm(true)}
