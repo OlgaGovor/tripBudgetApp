@@ -98,6 +98,14 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
 
   const timeValid = !departureDateTime || !arrivalDateTime || arrivalDateTime >= departureDateTime
 
+  // Show the selected stop first, then the rest in their original order.
+  const orderedStops = nearbyStops
+    ? [
+        ...nearbyStops.filter(ns => ns.stop.id === selectedToStopId),
+        ...nearbyStops.filter(ns => ns.stop.id !== selectedToStopId),
+      ]
+    : []
+
   async function handleDelete() {
     if (!leg) return
     await TransportLegRepository.delete(leg.id)
@@ -160,7 +168,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
               <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500 }}>Destination *</span>
               <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
-                {nearbyStops?.map(ns => (
+                {orderedStops.map(ns => (
                   <div
                     key={ns.stop.id}
                     onClick={() => { setDestinationName(ns.stop.placeName); setDestinationLat(ns.stop.lat); setDestinationLng(ns.stop.lng); setSelectedToStopId(ns.stop.id) }}
