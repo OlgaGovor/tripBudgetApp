@@ -117,12 +117,22 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       priceCurrency: priceCurrency || undefined,
       usefulLinks: [] as Accommodation['usefulLinks'],
     }
-    if (accommodation) {
-      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, city: city || undefined, lat, lng, price: parsedPrice, priceCurrency: priceCurrency || undefined }, selectedStopId)
-    } else {
-      await AccommodationRepository.create(data, selectedStopId)
-    }
+    // Close first, then persist in the background. The day-reassignment in update()
+    // briefly unassigns days, which would otherwise flip the still-open modal's host
+    // (AccommodationDayCard) into its empty-state branch and flash blank fields.
+    const existing = accommodation
+    const updates = { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, city: city || undefined, lat, lng, price: parsedPrice, priceCurrency: priceCurrency || undefined }
+    const sel = selectedStopId
     onDismiss()
+    try {
+      if (existing) {
+        await AccommodationRepository.update(existing.id, updates, sel)
+      } else {
+        await AccommodationRepository.create(data, sel)
+      }
+    } catch (e) {
+      console.error('Failed to save accommodation', e)
+    }
   }
 
   return (
