@@ -32,6 +32,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
   const [link, setLink] = useState('')
   const [notes, setNotes] = useState('')
   const [placeName, setPlaceName] = useState('')
+  const [city, setCity] = useState<string | undefined>()
   const [lat, setLat] = useState<number | undefined>()
   const [lng, setLng] = useState<number | undefined>()
   const [selectedStopId, setSelectedStopId] = useState<string | undefined>()
@@ -60,6 +61,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       setLink(accommodation.link ?? '')
       setNotes(accommodation.notes ?? '')
       setPlaceName(accommodation.placeName ?? '')
+      setCity(accommodation.city)
       setLat(accommodation.lat)
       setLng(accommodation.lng)
       setSelectedStopId(undefined)
@@ -73,7 +75,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
         : ''
       setCheckOut(nextDay)
       setLink(''); setNotes('')
-      setPlaceName(''); setLat(undefined); setLng(undefined); setSelectedStopId(undefined)
+      setPlaceName(''); setCity(undefined); setLat(undefined); setLng(undefined); setSelectedStopId(undefined)
       setPrice(''); setPriceCurrency(trip?.defaultCurrency ?? '')
     }
   }, [accommodation, isOpen, trip?.defaultCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -88,6 +90,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
     || link !== (accommodation.link ?? '')
     || notes !== (accommodation.notes ?? '')
     || placeName !== (accommodation.placeName ?? '')
+    || city !== accommodation.city
     || lat !== accommodation.lat
     || lng !== accommodation.lng
     || price !== (accommodation.price?.toString() ?? '')
@@ -108,13 +111,14 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
       link: link || undefined,
       notes: notes || undefined,
       placeName: placeName || undefined,
+      city: city || undefined,
       lat, lng,
       price: parsedPrice,
       priceCurrency: priceCurrency || undefined,
       usefulLinks: [] as Accommodation['usefulLinks'],
     }
     if (accommodation) {
-      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, lat, lng, price: parsedPrice, priceCurrency: priceCurrency || undefined }, selectedStopId)
+      await AccommodationRepository.update(accommodation.id, { name, status, checkIn, checkOut, link: link || undefined, notes: notes || undefined, placeName: placeName || undefined, city: city || undefined, lat, lng, price: parsedPrice, priceCurrency: priceCurrency || undefined }, selectedStopId)
     } else {
       await AccommodationRepository.create(data, selectedStopId)
     }
@@ -157,7 +161,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
                   {dayStops.map(stop => (
                     <div
                       key={stop.id}
-                      onClick={() => { setPlaceName(stop.placeName); setLat(stop.lat); setLng(stop.lng); setSelectedStopId(stop.id) }}
+                      onClick={() => { setPlaceName(stop.placeName); setCity(undefined); setLat(stop.lat); setLng(stop.lng); setSelectedStopId(stop.id) }}
                       style={{
                         flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
                         background: selectedStopId === stop.id ? 'var(--ion-color-primary)' : 'var(--ion-color-light-shade)',
@@ -168,12 +172,12 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
                       {stop.placeName}
                     </div>
                   ))}
-                  {!selectedStopId && placeName && (
+                  {!selectedStopId && (city || placeName) && (
                     <div style={{
                       flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
                       background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',
                     }}>
-                      {placeName}
+                      {city || placeName}
                     </div>
                   )}
                 </div>
@@ -239,13 +243,13 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
     <PlaceSearchModal
       isOpen={showHotelSearch}
       onDismiss={() => setShowHotelSearch(false)}
-      onSelect={r => { setName(r.name); setPlaceName(r.name); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
+      onSelect={r => { setName(r.name); setPlaceName(r.name); setCity(r.city); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
       title="Search hotel"
     />
     <PlaceSearchModal
       isOpen={showPlaceSearch}
       onDismiss={() => setShowPlaceSearch(false)}
-      onSelect={r => { setPlaceName(r.name); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
+      onSelect={r => { setPlaceName(r.name); setCity(undefined); setLat(r.lat); setLng(r.lng); setSelectedStopId(undefined) }}
       title="Search place"
     />
     <CurrencySelectModal

@@ -8,7 +8,7 @@ import { searchPlaces, type PlaceResult } from '../../../lib/geocoding'
 interface Props {
   isOpen: boolean
   onDismiss: () => void
-  onSelect: (result: { name: string; lat?: number; lng?: number }) => void
+  onSelect: (result: { name: string; city?: string; lat?: number; lng?: number }) => void
   title?: string
 }
 
@@ -41,7 +41,7 @@ const PlaceSearchModal: React.FC<Props> = ({ isOpen, onDismiss, onSelect, title 
   }
 
   function handleSelect(result: PlaceResult) {
-    onSelect({ name: result.displayName.split(',')[0].trim(), lat: result.lat, lng: result.lng })
+    onSelect({ name: result.displayName.split(',')[0].trim(), city: result.city, lat: result.lat, lng: result.lng })
     onDismiss()
   }
 

@@ -21,6 +21,26 @@ describe('AccommodationRepository.create', () => {
     expect(days.find(d => d.date === '2026-07-04')?.accommodationId).toBeUndefined() // exclusive
     expect(days.find(d => d.date === '2026-07-05')?.accommodationId).toBeUndefined()
   })
+
+  it('names auto-created stops after the city when one is set', async () => {
+    const id = await AccommodationRepository.create({
+      tripId: 'trip1', name: 'Hotel Granvia', city: 'Kyoto', status: 'booked',
+      checkIn: '2026-07-02', checkOut: '2026-07-04', usefulLinks: [],
+    })
+    const stops = await db.stops.where('accommodationId').equals(id).toArray()
+    expect(stops.length).toBeGreaterThan(0)
+    expect(stops.every(s => s.placeName === 'Kyoto')).toBe(true)
+  })
+
+  it('falls back to the hotel name when no city is set', async () => {
+    const id = await AccommodationRepository.create({
+      tripId: 'trip1', name: 'Hotel Granvia', status: 'booked',
+      checkIn: '2026-07-02', checkOut: '2026-07-04', usefulLinks: [],
+    })
+    const stops = await db.stops.where('accommodationId').equals(id).toArray()
+    expect(stops.length).toBeGreaterThan(0)
+    expect(stops.every(s => s.placeName === 'Hotel Granvia')).toBe(true)
+  })
 })
 
 describe('AccommodationRepository.update', () => {

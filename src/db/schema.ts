@@ -60,6 +60,7 @@ export interface Accommodation {
   tripId: string
   name: string
   placeName?: string       // searchable place name (used as stop placeName)
+  city?: string            // city of the hotel (preferred as auto-created stop placeName)
   lat?: number
   lng?: number
   link?: string

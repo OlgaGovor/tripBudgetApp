@@ -1,5 +1,6 @@
 export interface PlaceResult {
   displayName: string
+  city?: string
   lat: number
   lng: number
 }
@@ -11,18 +12,20 @@ export async function searchPlaces(query: string): Promise<PlaceResult[]> {
   const data: {
     features: Array<{
       geometry: { coordinates: [number, number] }
-      properties: { name?: string; city?: string; state?: string; country?: string }
+      properties: { name?: string; city?: string; town?: string; village?: string; state?: string; country?: string }
     }>
   } = await response.json()
   return data.features.map(f => {
     const p = f.properties
+    const city = p.city ?? p.town ?? p.village
     const seen = new Set<string>()
     const parts: string[] = []
-    for (const part of [p.name, p.city, p.state, p.country]) {
+    for (const part of [p.name, city, p.state, p.country]) {
       if (part && !seen.has(part)) { seen.add(part); parts.push(part) }
     }
     return {
       displayName: parts.join(', '),
+      city,
       lat: f.geometry.coordinates[1],
       lng: f.geometry.coordinates[0],
     }

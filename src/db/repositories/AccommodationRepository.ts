@@ -18,6 +18,7 @@ async function syncStopsForAccommodation(
   lat?: number,
   lng?: number,
   selectedStopId?: string,
+  city?: string,
 ): Promise<void> {
   const newDates = new Set(occupiedDates(checkIn, checkOut))
   const existingStops = await db.stops.where('accommodationId').equals(accommodationId).toArray()
@@ -44,7 +45,7 @@ async function syncStopsForAccommodation(
   // Upsert for each day in the new range
   const days = await db.days.where('tripId').equals(tripId).filter(d => newDates.has(d.date)).toArray()
   await Promise.all(days.map(async d => {
-    const stopData = { placeName: placeName ?? name, placeLink: undefined as string | undefined, lat, lng }
+    const stopData = { placeName: city ?? placeName ?? name, placeLink: undefined as string | undefined, lat, lng }
     const existing = remainingByDayId.get(d.id)
     if (existing) {
       // Already linked to this accommodation — update in place
@@ -132,7 +133,7 @@ export const AccommodationRepository = {
     const id = uuidv4()
     await db.accommodations.add({ ...input, id })
     await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
-    await syncStopsForAccommodation(input.tripId, id, input.name, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId)
+    await syncStopsForAccommodation(input.tripId, id, input.name, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId, input.city)
     await syncExpenseForAccommodation(id, input.tripId, input.name, input.placeName, input.checkIn, input.price, input.priceCurrency)
     await TripRepository.touch(input.tripId)
     return id
@@ -147,6 +148,7 @@ export const AccommodationRepository = {
       || (updates.name !== undefined && updates.name !== existing.name)
       || ('link' in updates && updates.link !== existing.link)
       || ('placeName' in updates && updates.placeName !== existing.placeName)
+      || ('city' in updates && updates.city !== existing.city)
       || ('lat' in updates && updates.lat !== existing.lat)
       || ('lng' in updates && updates.lng !== existing.lng)
     if (datesChanged) await unassignFromDays(existing.tripId, id)
@@ -156,7 +158,7 @@ export const AccommodationRepository = {
       await assignToDays(existing.tripId, id, updated.checkIn, updated.checkOut)
     }
     if (stopsAffected) {
-      await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId)
+      await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId, updated.city)
     }
     await syncExpenseForAccommodation(id, existing.tripId, updated.name, updated.placeName, updated.checkIn, updated.price, updated.priceCurrency)
     await TripRepository.touch(existing.tripId)
