@@ -31,13 +31,16 @@ interface Props {
   cumulativeSpent?: number
   effectiveDailyBudget?: number
   currency?: string
+  defaultCollapsed?: boolean
+  domId?: string
 }
 
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en', {
-    weekday: 'short', month: 'short', day: 'numeric',
-  })
+  const d = new Date(dateStr + 'T00:00:00Z')
+  const dayMonth = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) // "9 Jul"
+  const weekday = d.toLocaleDateString('en', { weekday: 'short' }) // "Thu"
+  return `${dayMonth}, ${weekday}`
 }
 
 const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
@@ -94,8 +97,8 @@ const InTransitCard: React.FC<{ leg: TransportLeg }> = ({ leg }) => {
   )
 }
 
-const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpent = 0, cumulativeSpent = 0, effectiveDailyBudget, currency }) => {
-  const [collapsed, setCollapsed] = useState(false)
+const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpent = 0, cumulativeSpent = 0, effectiveDailyBudget, currency, defaultCollapsed = false, domId }) => {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const [showStopForm, setShowStopForm] = useState(false)
   const [addLegFromStopId, setAddLegFromStopId] = useState<string | null>(null)
   const { stops } = useStops(day.id)
@@ -120,12 +123,12 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
   }
 
   return (
-    <div style={{ borderRadius: 12, margin: '0.75rem 1rem', background: 'var(--ion-color-light)', overflow: 'hidden' }}>
+    <div id={domId} style={{ borderRadius: 12, margin: '0.75rem 1rem', background: 'var(--ion-color-light)', overflow: 'hidden' }}>
       <div
         onClick={() => setCollapsed(c => !c)}
         style={{ display: 'flex', alignItems: 'center', padding: '0.75rem 1rem', cursor: 'pointer', fontWeight: 600 }}
       >
-        <span style={{ flex: 1 }}>Day {day.dayNumber} · {formatDate(day.date)}</span>
+        <span style={{ flex: 1 }}>{formatDate(day.date)} • Day {day.dayNumber}</span>
         {effectiveDailyBudget && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
             {dailySpent > 0 && (

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButtons, IonButton, IonIcon } from '@ionic/react'
 import { ellipsisVertical, homeOutline } from 'ionicons/icons'
 import { useParams, useHistory } from 'react-router-dom'
@@ -11,6 +11,12 @@ import DayCard from './DayCard'
 import TripFormModal from '../../trips/components/TripFormModal'
 import { useProgressiveCount } from '../../../lib/useProgressiveCount'
 
+/** Local (not UTC) YYYY-MM-DD for today, matching how day.date is stored. */
+function localTodayString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const PlannerPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const { days } = useDays(tripId)
@@ -22,6 +28,23 @@ const PlannerPage: React.FC = () => {
   const [showEditTrip, setShowEditTrip] = useState(false)
 
   const visibleDayCount = useProgressiveCount(days.length, 5)
+
+  // Today as a local YYYY-MM-DD string (day.date is stored this way; days are date-sorted).
+  const [todayStr] = useState(localTodayString)
+  // First day that hasn't passed yet — earlier days are collapsed and we scroll to this one.
+  const todayIndex = days.findIndex(d => d.date >= todayStr)
+
+  // Once the target day has progressively rendered, scroll it to the top (once).
+  const scrolledRef = useRef(false)
+  useEffect(() => {
+    if (scrolledRef.current || todayIndex < 0) return
+    if (visibleDayCount <= todayIndex) return // target not rendered yet
+    const el = document.getElementById(`day-card-${days[todayIndex].id}`)
+    if (el) {
+      el.scrollIntoView({ block: 'start' })
+      scrolledRef.current = true
+    }
+  }, [visibleDayCount, todayIndex, days])
 
   const effectiveDailyBudget: number | undefined = trip
     ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))
@@ -67,6 +90,8 @@ const PlannerPage: React.FC = () => {
             cumulativeSpent={cumulativeByDayId[day.id] ?? 0}
             effectiveDailyBudget={effectiveDailyBudget}
             currency={trip?.defaultCurrency}
+            defaultCollapsed={day.date < todayStr}
+            domId={`day-card-${day.id}`}
           />
         ))}
       </IonContent>
