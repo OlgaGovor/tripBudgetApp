@@ -3,6 +3,30 @@ import { db } from '../db/db'
 const FRANKFURTER_URL = 'https://api.frankfurter.dev/v2/rates?base=EUR'
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000
 
+let refreshInFlight: Promise<Record<string, number>> | null = null
+
+/** Fetch fresh rates from the network and update the cache. Shared so concurrent
+ *  callers don't trigger duplicate fetches. Resolves to the fetched rates. */
+function fetchAndCacheRates(): Promise<Record<string, number>> {
+  if (refreshInFlight) return refreshInFlight
+  refreshInFlight = (async () => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5_000)
+    try {
+      const res = await fetch(FRANKFURTER_URL, { signal: controller.signal }).finally(() => clearTimeout(timeout))
+      if (!res.ok) throw new Error('Frankfurter error')
+      // v2 returns an array: [{base, quote, rate, date}, ...]
+      const data: Array<{ quote: string; rate: number }> = await res.json()
+      const rates = Object.fromEntries(data.map(r => [r.quote, r.rate]))
+      await db.exchangeRateCache.put({ base: 'EUR', rates, fetchedAt: new Date().toISOString() })
+      return rates
+    } finally {
+      refreshInFlight = null
+    }
+  })()
+  return refreshInFlight
+}
+
 export async function getExchangeRates(): Promise<{ rates: Record<string, number>; stale: boolean }> {
   const cached = await db.exchangeRateCache.get('EUR')
   const age = cached ? Date.now() - new Date(cached.fetchedAt).getTime() : Infinity
@@ -10,18 +34,18 @@ export async function getExchangeRates(): Promise<{ rates: Record<string, number
 
   if (cached && isFresh) return { rates: { EUR: 1, ...cached.rates }, stale: false }
 
+  // Cache exists but is stale: return it immediately and refresh in the background
+  // so callers (e.g. saving an expense) are never blocked on the network.
+  if (cached) {
+    fetchAndCacheRates().catch(() => {})
+    return { rates: { EUR: 1, ...cached.rates }, stale: true }
+  }
+
+  // No cache at all — we have to wait for the network this once.
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5_000)
-    const res = await fetch(FRANKFURTER_URL, { signal: controller.signal }).finally(() => clearTimeout(timeout))
-    if (!res.ok) throw new Error('Frankfurter error')
-    // v2 returns an array: [{base, quote, rate, date}, ...]
-    const data: Array<{ quote: string; rate: number }> = await res.json()
-    const rates = Object.fromEntries(data.map(r => [r.quote, r.rate]))
-    await db.exchangeRateCache.put({ base: 'EUR', rates, fetchedAt: new Date().toISOString() })
+    const rates = await fetchAndCacheRates()
     return { rates: { EUR: 1, ...rates }, stale: false }
   } catch {
-    if (cached) return { rates: { EUR: 1, ...cached.rates }, stale: true }
     throw new Error('No exchange rate data available')
   }
 }

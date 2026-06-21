@@ -121,6 +121,22 @@ async function unassignFromDays(tripId: string, accommodationId: string): Promis
   await Promise.all(days.map(d => db.days.update(d.id, { accommodationId: undefined })))
 }
 
+/** Move an accommodation's day assignment to a new date range, touching ONLY the days
+ *  that actually change. Days that stay assigned are left untouched, so the accommodation
+ *  never blinks off the plan page during a date edit. */
+async function reassignDays(tripId: string, accommodationId: string, checkIn: string, checkOut: string): Promise<void> {
+  const target = new Set(occupiedDates(checkIn, checkOut).filter(d => d < checkOut))
+  const tripDays = await db.days.where('tripId').equals(tripId).toArray()
+  const writes: Promise<unknown>[] = []
+  for (const d of tripDays) {
+    const shouldHave = target.has(d.date)
+    const has = d.accommodationId === accommodationId
+    if (shouldHave && !has) writes.push(db.days.update(d.id, { accommodationId }))
+    else if (!shouldHave && has) writes.push(db.days.update(d.id, { accommodationId: undefined }))
+  }
+  await Promise.all(writes)
+}
+
 export const AccommodationRepository = {
   useByTripId(tripId: string) {
     return useLiveQuery(
@@ -151,11 +167,10 @@ export const AccommodationRepository = {
       || ('city' in updates && updates.city !== existing.city)
       || ('lat' in updates && updates.lat !== existing.lat)
       || ('lng' in updates && updates.lng !== existing.lng)
-    if (datesChanged) await unassignFromDays(existing.tripId, id)
     await db.accommodations.update(id, updates)
     const updated = (await db.accommodations.get(id))!
     if (datesChanged) {
-      await assignToDays(existing.tripId, id, updated.checkIn, updated.checkOut)
+      await reassignDays(existing.tripId, id, updated.checkIn, updated.checkOut)
     }
     if (stopsAffected) {
       await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId, updated.city)

@@ -47,4 +47,23 @@ describe('getExchangeRates', () => {
     expect(stale).toBe(true)
     vi.restoreAllMocks()
   })
+
+  it('returns a stale cache immediately without waiting for the network refresh', async () => {
+    const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    await db.exchangeRateCache.put({ base: 'EUR', rates: { USD: 1.05 }, fetchedAt: oldDate })
+    // Fetch stays pending — if getExchangeRates awaited it, this would never resolve.
+    let release: (v: unknown) => void = () => {}
+    const fetchStarted = vi.fn()
+    vi.stubGlobal('fetch', vi.fn(() => { fetchStarted(); return new Promise(r => { release = r }) }))
+
+    const { rates, stale } = await getExchangeRates()
+    expect(rates['USD']).toBe(1.05)
+    expect(stale).toBe(true)
+    expect(fetchStarted).toHaveBeenCalled() // background refresh was kicked off
+
+    // Let the background refresh settle so it doesn't leak into other tests.
+    release({ ok: true, json: async () => [] })
+    await new Promise(r => setTimeout(r, 0))
+    vi.restoreAllMocks()
+  })
 })
