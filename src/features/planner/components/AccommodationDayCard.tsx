@@ -1,5 +1,7 @@
 // src/features/planner/components/AccommodationDayCard.tsx
 import { useState } from 'react'
+import { IonIcon } from '@ionic/react'
+import { mapOutline } from 'ionicons/icons'
 import type { Accommodation } from '../../../db/schema'
 import AccommodationFormModal from './AccommodationFormModal'
 
@@ -45,6 +47,9 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
   }
 
   const accom = accommodation
+  const mapsUrl = accom.lat != null && accom.lng != null
+    ? `https://www.google.com/maps/search/?api=1&query=${accom.lat},${accom.lng}`
+    : undefined
 
   return (
     <>
@@ -67,6 +72,17 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
           </div>
         </div>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[accom.status], flexShrink: 0 }} />
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            title="Open in maps"
+            style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
+          >
+            <IonIcon icon={mapOutline} style={{ color: '#16a085', fontSize: '1.15rem' }} />
+          </a>
+        )}
       </div>
       <AccommodationFormModal
         isOpen={showForm}
