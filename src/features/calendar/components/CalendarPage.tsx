@@ -151,7 +151,7 @@ const CalendarPage: React.FC = () => {
                   budgetStatusByDate={budgetStatusByDate}
                   spentByDate={spentByDate}
                   effectiveDailyBudget={effectiveDailyBudget}
-                  onDayClick={_date => history.push(`/trips/${tripId}/plan`)}
+                  onDayClick={date => history.push(`/trips/${tripId}/plan?date=${date}`)}
                 />
               </div>
             )
