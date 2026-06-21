@@ -13,6 +13,12 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+function addDay(date: string): string {
+  const d = new Date(date + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 interface Props {
   year: number
   month: number
@@ -64,6 +70,18 @@ const CalendarGrid: React.FC<Props> = ({
     })
     return m
   }, [legs])
+  // Overnight legs cover every night they span: [departureDate, arrivalDate).
+  const transitByDate = useMemo(() => {
+    const m = new Map<string, TransportLeg>()
+    legs.forEach(l => {
+      if (!l.departureDateTime || !l.arrivalDateTime) return
+      const dep = l.departureDateTime.slice(0, 10)
+      const arr = l.arrivalDateTime.slice(0, 10)
+      if (arr <= dep) return // same-day, not an overnight stay
+      for (let cur = dep; cur < arr; cur = addDay(cur)) m.set(cur, l)
+    })
+    return m
+  }, [legs])
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0 }}>
@@ -82,6 +100,7 @@ const CalendarGrid: React.FC<Props> = ({
             day={day}
             accommodation={day ? accomByDayId.get(day.id) : undefined}
             departingLegs={legsByDate.get(date) ?? []}
+            transitLeg={transitByDate.get(date)}
             firstStopName={day ? stopNamesByDayId[day.id] : undefined}
             budgetStatus={budgetStatusByDate[date]}
             dailySpent={spentByDate?.[date]}
