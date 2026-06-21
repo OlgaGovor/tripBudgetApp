@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '../db'
-import type { Accommodation } from '../schema'
-import { ExpenseRepository } from './ExpenseRepository'
+import type { Accommodation, Expense } from '../schema'
 import { TripRepository } from './TripRepository'
+import { getExchangeRates, convertAmount } from '../../lib/currency'
+import { notifyDataChanged } from '../../sync/SyncManager'
 
 /** Upsert accommodation stops: update in place if already exists, create if missing,
  *  delete stops for days no longer in the date range. Never duplicates.
@@ -63,7 +64,16 @@ async function syncStopsForAccommodation(
   }))
 }
 
-async function syncExpenseForAccommodation(
+type ExpensePlan =
+  | { type: 'none' }
+  | { type: 'delete'; id: string }
+  | { type: 'update'; id: string; data: Partial<Omit<Expense, 'id'>> }
+  | { type: 'create'; data: Omit<Expense, 'id'> }
+
+/** Decide what to do with the accommodation's linked expense. Runs OUTSIDE the write
+ *  transaction because it may fetch exchange rates (network); returns a pure-data plan
+ *  that applyExpensePlan() then executes inside the transaction. */
+async function planExpense(
   accommodationId: string,
   tripId: string,
   name: string,
@@ -71,22 +81,29 @@ async function syncExpenseForAccommodation(
   checkIn: string,
   price: number | undefined,
   priceCurrency: string | undefined,
-): Promise<void> {
+): Promise<ExpensePlan> {
   const existing = await db.expenses.where('accommodationId').equals(accommodationId).first()
   if (!price || !priceCurrency) {
-    if (existing) await db.expenses.delete(existing.id)
-    return
+    return existing ? { type: 'delete', id: existing.id } : { type: 'none' }
   }
+  const trip = await db.trips.get(tripId)
+  const { rates } = await getExchangeRates()
+  const amountConverted = trip ? convertAmount(price, priceCurrency, trip.defaultCurrency, rates) : price
+  const convertedAt = new Date().toISOString()
   const note = placeName ? `${name} · ${placeName}` : name
   if (existing) {
-    await ExpenseRepository.update(existing.id, { amount: price, currency: priceCurrency, note, date: checkIn })
-  } else {
-    await ExpenseRepository.create({
-      tripId, categoryId: 'cat-accommodation',
-      amount: price, currency: priceCurrency,
-      date: checkIn, note, accommodationId,
-    })
+    return { type: 'update', id: existing.id, data: { amount: price, currency: priceCurrency, note, date: checkIn, amountConverted, convertedAt } }
   }
+  return {
+    type: 'create',
+    data: { tripId, categoryId: 'cat-accommodation', amount: price, currency: priceCurrency, date: checkIn, note, accommodationId, amountConverted, convertedAt },
+  }
+}
+
+async function applyExpensePlan(plan: ExpensePlan): Promise<void> {
+  if (plan.type === 'delete') await db.expenses.delete(plan.id)
+  else if (plan.type === 'update') await db.expenses.update(plan.id, plan.data)
+  else if (plan.type === 'create') await db.expenses.add({ ...plan.data, id: uuidv4() })
 }
 
 async function deleteStopsForAccommodation(accommodationId: string): Promise<void> {
@@ -147,11 +164,16 @@ export const AccommodationRepository = {
 
   async create(input: AccommodationInput, selectedStopId?: string): Promise<string> {
     const id = uuidv4()
-    await db.accommodations.add({ ...input, id })
-    await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
-    await syncStopsForAccommodation(input.tripId, id, input.name, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId, input.city)
-    await syncExpenseForAccommodation(id, input.tripId, input.name, input.placeName, input.checkIn, input.price, input.priceCurrency)
-    await TripRepository.touch(input.tripId)
+    // Compute the expense (may fetch rates) BEFORE the transaction so the txn stays pure DB.
+    const expensePlan = await planExpense(id, input.tripId, input.name, input.placeName, input.checkIn, input.price, input.priceCurrency)
+    await db.transaction('rw', [db.accommodations, db.days, db.stops, db.expenses, db.trips], async () => {
+      await db.accommodations.add({ ...input, id })
+      await assignToDays(input.tripId, id, input.checkIn, input.checkOut)
+      await syncStopsForAccommodation(input.tripId, id, input.name, input.checkIn, input.checkOut, input.placeName, input.lat, input.lng, selectedStopId, input.city)
+      await applyExpensePlan(expensePlan)
+      await db.trips.update(input.tripId, { updatedAt: new Date().toISOString() })
+    })
+    notifyDataChanged(input.tripId)
     return id
   },
 
@@ -167,16 +189,21 @@ export const AccommodationRepository = {
       || ('city' in updates && updates.city !== existing.city)
       || ('lat' in updates && updates.lat !== existing.lat)
       || ('lng' in updates && updates.lng !== existing.lng)
-    await db.accommodations.update(id, updates)
-    const updated = (await db.accommodations.get(id))!
-    if (datesChanged) {
-      await reassignDays(existing.tripId, id, updated.checkIn, updated.checkOut)
-    }
-    if (stopsAffected) {
-      await syncStopsForAccommodation(existing.tripId, id, updated.name, updated.checkIn, updated.checkOut, updated.placeName, updated.lat, updated.lng, selectedStopId, updated.city)
-    }
-    await syncExpenseForAccommodation(id, existing.tripId, updated.name, updated.placeName, updated.checkIn, updated.price, updated.priceCurrency)
-    await TripRepository.touch(existing.tripId)
+    const merged = { ...existing, ...updates }
+    // Compute the expense (may fetch rates) BEFORE the transaction so the txn stays pure DB.
+    const expensePlan = await planExpense(id, existing.tripId, merged.name, merged.placeName, merged.checkIn, merged.price, merged.priceCurrency)
+    await db.transaction('rw', [db.accommodations, db.days, db.stops, db.expenses, db.trips], async () => {
+      await db.accommodations.update(id, updates)
+      if (datesChanged) {
+        await reassignDays(existing.tripId, id, merged.checkIn, merged.checkOut)
+      }
+      if (stopsAffected) {
+        await syncStopsForAccommodation(existing.tripId, id, merged.name, merged.checkIn, merged.checkOut, merged.placeName, merged.lat, merged.lng, selectedStopId, merged.city)
+      }
+      await applyExpensePlan(expensePlan)
+      await db.trips.update(existing.tripId, { updatedAt: new Date().toISOString() })
+    })
+    notifyDataChanged(existing.tripId)
   },
 
   async delete(id: string): Promise<void> {
