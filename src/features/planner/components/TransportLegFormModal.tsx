@@ -106,6 +106,20 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
       ]
     : []
 
+  const dirty = !leg
+    || method !== leg.method
+    || status !== leg.status
+    || departureDateTime !== (leg.departureDateTime ?? '')
+    || arrivalDateTime !== (leg.arrivalDateTime ?? '')
+    || destinationName !== (toStop?.placeName ?? '')
+    || destinationLat !== toStop?.lat
+    || destinationLng !== toStop?.lng
+    || selectedToStopId !== leg.toStopId
+    || bookingLink !== (leg.bookingLink ?? '')
+    || notes !== (leg.notes ?? '')
+    || price !== (leg.price?.toString() ?? '')
+    || priceCurrency !== (leg.priceCurrency ?? trip?.defaultCurrency ?? '')
+
   async function handleDelete() {
     if (!leg) return
     await TransportLegRepository.delete(leg.id)
@@ -159,7 +173,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
                   <IonIcon slot="icon-only" icon={trashOutline} />
                 </IonButton>
               )}
-              <IonButton strong onClick={handleSave} disabled={!destinationName.trim() || !timeValid}>Save</IonButton>
+              <IonButton strong onClick={handleSave} disabled={!destinationName.trim() || !timeValid || !dirty}>Save</IonButton>
             </IonButtons>
           </IonToolbar>
         </IonHeader>

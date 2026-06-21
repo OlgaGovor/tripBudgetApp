@@ -89,6 +89,12 @@ const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, da
     onDismiss()
   }
 
+  const dirty = !stop
+    || placeName !== stop.placeName
+    || lat !== stop.lat
+    || lng !== stop.lng
+    || placeLink !== (stop.placeLink ?? '')
+
   async function handleSave() {
     if (!placeName.trim()) return
     if (stop) {
@@ -120,7 +126,7 @@ const StopFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId: _tripId, da
                 <IonIcon slot="icon-only" icon={trashOutline} />
               </IonButton>
             )}
-            <IonButton strong onClick={handleSave} disabled={!placeName.trim()}>Save</IonButton>
+            <IonButton strong onClick={handleSave} disabled={!placeName.trim() || !dirty}>Save</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>

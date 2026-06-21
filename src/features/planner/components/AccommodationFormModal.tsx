@@ -80,6 +80,20 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
 
   const dateValid = !checkIn || !checkOut || checkOut > checkIn
 
+  const dirty = !accommodation
+    || name !== accommodation.name
+    || status !== accommodation.status
+    || checkIn !== accommodation.checkIn
+    || checkOut !== accommodation.checkOut
+    || link !== (accommodation.link ?? '')
+    || notes !== (accommodation.notes ?? '')
+    || placeName !== (accommodation.placeName ?? '')
+    || lat !== accommodation.lat
+    || lng !== accommodation.lng
+    || price !== (accommodation.price?.toString() ?? '')
+    || priceCurrency !== (accommodation.priceCurrency ?? trip?.defaultCurrency ?? '')
+    || selectedStopId !== undefined
+
   async function handleDelete() {
     if (!accommodation) return
     await AccommodationRepository.delete(accommodation.id)
@@ -120,7 +134,7 @@ const AccommodationFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, ac
                 <IonIcon slot="icon-only" icon={trashOutline} />
               </IonButton>
             )}
-            <IonButton strong onClick={handleSave} disabled={!name.trim() || !checkIn || !checkOut || !dateValid}>Save</IonButton>
+            <IonButton strong onClick={handleSave} disabled={!name.trim() || !checkIn || !checkOut || !dateValid || !dirty}>Save</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
