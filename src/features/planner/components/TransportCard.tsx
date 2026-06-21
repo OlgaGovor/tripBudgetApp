@@ -7,7 +7,7 @@ import { isOvernightTransport } from '../../../db/repositories/TransportLegRepos
 import TransportLegFormModal from './TransportLegFormModal'
 
 const METHOD_ICONS: Record<TransportLeg['method'], string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
 }
 const STATUS_COLORS: Record<TransportLeg['status'], string> = {
   not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',

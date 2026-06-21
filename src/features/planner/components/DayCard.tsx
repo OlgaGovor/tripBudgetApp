@@ -16,7 +16,7 @@ import StopFormModal from './StopFormModal'
 import TransportLegFormModal from './TransportLegFormModal'
 
 const METHOD_ICONS: Record<TransportLeg['method'], string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
 }
 const STATUS_COLORS: Record<TransportLeg['status'], string> = {
   not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
@@ -168,7 +168,7 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
                             border: '1px dashed #ddd', borderRadius: 10, padding: '3px 10px', cursor: 'pointer',
                           }}
                         >
-                          ＋ add leg after {stop.placeName}
+                          ＋ add transport/tour after {stop.placeName}
                         </button>
                       </div>
                     )

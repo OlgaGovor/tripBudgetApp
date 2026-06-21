@@ -17,10 +17,10 @@ function addDays(dateStr: string, n: number): string {
 import PlaceSearchModal from './PlaceSearchModal'
 import CurrencySelectModal from './CurrencySelectModal'
 
-const METHODS: TransportLeg['method'][] = ['car', 'bus', 'train', 'plane', 'walk', 'boat', 'ferry']
+const METHODS: TransportLeg['method'][] = ['car', 'bus', 'train', 'plane', 'walk', 'boat', 'ferry', 'tour']
 const METHOD_LABELS: Record<TransportLeg['method'], string> = {
   car: '🚗 Car', bus: '🚌 Bus', train: '🚆 Train', plane: '✈️ Plane',
-  walk: '🚶 Walk', boat: '⛵ Boat', ferry: '⛴️ Ferry',
+  walk: '🚶 Walk', boat: '⛵ Boat', ferry: '⛴️ Ferry', tour: '📸 Tour',
 }
 const STATUSES: TransportLeg['status'][] = ['not_booked', 'booked', 'booked_paid']
 const STATUS_LABELS: Record<TransportLeg['status'], string> = {
@@ -166,7 +166,7 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
         <IonHeader>
           <IonToolbar>
             <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
-            <IonTitle>{leg ? 'Edit Transport' : 'Add Transport'}</IonTitle>
+            <IonTitle>{leg ? 'Edit transport/tour' : 'Add transport/tour'}</IonTitle>
             <IonButtons slot="end">
               {leg && (
                 <IonButton color="danger" onClick={() => setShowDeleteConfirm(true)}>

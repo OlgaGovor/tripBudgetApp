@@ -5,7 +5,7 @@ const ACCOM_COLORS: Record<Accommodation['status'], string> = {
   not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
 }
 const METHOD_ICONS: Record<string, string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
 }
 const TRANSPORT_STATUS_DOT: Record<TransportLeg['status'], string> = {
   not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',

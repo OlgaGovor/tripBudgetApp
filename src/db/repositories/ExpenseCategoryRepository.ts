@@ -11,6 +11,7 @@ function markUpdated() {
 export const DEFAULT_CATEGORIES: Omit<ExpenseCategory, 'id'>[] = [
   { label: 'Accommodation', color: '#4A90D9', icon: '🏨' },
   { label: 'Transport',     color: '#7B68EE', icon: '🚌' },
+  { label: 'Experience',    color: '#E91E63', icon: '📸' },
   { label: 'Food',          color: '#F5A623', icon: '🍕' },
   { label: 'Other',         color: '#9B9B9B', icon: '📦' },
 ]
@@ -21,11 +22,13 @@ export const ExpenseCategoryRepository = {
   },
 
   async ensureSeeded(): Promise<void> {
-    const count = await db.expenseCategories.count()
-    if (count > 0) return
-    await db.expenseCategories.bulkAdd(
-      DEFAULT_CATEGORIES.map(c => ({ ...c, id: `cat-${c.label.toLowerCase()}` }))
-    )
+    // Seed defaults, and backfill any default that doesn't exist yet (e.g. categories
+    // added in a later version) so existing trips pick them up too.
+    const existingIds = new Set((await db.expenseCategories.toArray()).map(c => c.id))
+    const missing = DEFAULT_CATEGORIES
+      .map(c => ({ ...c, id: `cat-${c.label.toLowerCase()}` }))
+      .filter(c => !existingIds.has(c.id))
+    if (missing.length) await db.expenseCategories.bulkAdd(missing)
   },
 
   async create(input: Omit<ExpenseCategory, 'id'>): Promise<string> {
