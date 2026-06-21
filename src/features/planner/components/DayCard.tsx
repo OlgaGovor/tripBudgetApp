@@ -1,5 +1,5 @@
 // src/features/planner/components/DayCard.tsx
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { IonIcon, IonReorderGroup, type ItemReorderEventDetail } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -197,7 +197,9 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
         </div>
       )}
 
-      <StopFormModal isOpen={showStopForm} onDismiss={() => setShowStopForm(false)} tripId={tripId} dayId={day.id} />
+      {showStopForm && (
+        <StopFormModal isOpen={true} onDismiss={() => setShowStopForm(false)} tripId={tripId} dayId={day.id} />
+      )}
       {addLegFromStopId && (
         <TransportLegFormModal
           isOpen={true}
@@ -212,4 +214,4 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
   )
 }
 
-export default DayCard
+export default memo(DayCard)

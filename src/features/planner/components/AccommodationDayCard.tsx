@@ -36,12 +36,14 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
           <span style={{ fontSize: '1rem', opacity: 0.4 }}>🏨</span>
           <span style={{ color: '#16a085', fontWeight: 500 }}>＋ Add accommodation</span>
         </div>
-        <AccommodationFormModal
-          isOpen={showForm}
-          onDismiss={() => setShowForm(false)}
-          tripId={tripId}
-          initialDate={initialDate}
-        />
+        {showForm && (
+          <AccommodationFormModal
+            isOpen={true}
+            onDismiss={() => setShowForm(false)}
+            tripId={tripId}
+            initialDate={initialDate}
+          />
+        )}
       </>
     )
   }
@@ -84,12 +86,14 @@ const AccommodationDayCard: React.FC<Props> = ({ accommodation, tripId, initialD
           </a>
         )}
       </div>
-      <AccommodationFormModal
-        isOpen={showForm}
-        onDismiss={() => setShowForm(false)}
-        tripId={tripId}
-        accommodation={accom}
-      />
+      {showForm && (
+        <AccommodationFormModal
+          isOpen={true}
+          onDismiss={() => setShowForm(false)}
+          tripId={tripId}
+          accommodation={accom}
+        />
+      )}
     </>
   )
 }
