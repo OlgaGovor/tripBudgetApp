@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButtons, IonButton, IonIcon } from '@ionic/react'
+import { useState } from 'react'
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButtons, IonButton, IonIcon, useIonViewWillEnter } from '@ionic/react'
 import { ellipsisVertical, homeOutline } from 'ionicons/icons'
 import { useParams, useHistory } from 'react-router-dom'
+import { db } from '../../../db/db'
 import { useDays } from '../hooks/useDays'
 import { useTransportLegs } from '../hooks/useTransportLegs'
 import { useAccommodations } from '../hooks/useAccommodations'
@@ -31,20 +32,26 @@ const PlannerPage: React.FC = () => {
 
   // Today as a local YYYY-MM-DD string (day.date is stored this way; days are date-sorted).
   const [todayStr] = useState(localTodayString)
-  // First day that hasn't passed yet — earlier days are collapsed and we scroll to this one.
-  const todayIndex = days.findIndex(d => d.date >= todayStr)
 
-  // Once the target day has progressively rendered, scroll it to the top (once).
-  const scrolledRef = useRef(false)
-  useEffect(() => {
-    if (scrolledRef.current || todayIndex < 0) return
-    if (visibleDayCount <= todayIndex) return // target not rendered yet
-    const el = document.getElementById(`day-card-${days[todayIndex].id}`)
-    if (el) {
-      el.scrollIntoView({ block: 'start' })
-      scrolledRef.current = true
+  // Plan/Calendar are cached tabs, so scroll on view-enter (fires every time the tab is
+  // shown) rather than via effects. Reads days fresh from the DB to avoid stale closures,
+  // and retries because day cards render progressively after the page mounts.
+  useIonViewWillEnter(() => {
+    const requested = new URLSearchParams(window.location.search).get('date')
+    async function scrollWhenReady(attempt = 0) {
+      const d = await db.days.where('tripId').equals(tripId).sortBy('date')
+      let idx = requested ? d.findIndex(x => x.date === requested) : -1
+      if (idx < 0) {
+        const t = d.findIndex(x => x.date >= todayStr)
+        idx = t === -1 ? d.length - 1 : t
+      }
+      if (idx < 0 || idx >= d.length) return
+      const el = document.getElementById(`day-card-${d[idx].id}`)
+      if (el) { el.scrollIntoView({ block: 'start' }); return }
+      if (attempt < 25) setTimeout(() => scrollWhenReady(attempt + 1), 80)
     }
-  }, [visibleDayCount, todayIndex, days])
+    scrollWhenReady()
+  })
 
   const effectiveDailyBudget: number | undefined = trip
     ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))

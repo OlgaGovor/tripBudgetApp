@@ -69,14 +69,14 @@ describe('DayCard', () => {
   it('shows add-leg button for a stop with no departing leg', () => {
     vi.mocked(useStops).mockReturnValue({ stops: [STOP] })
     render(<DayCard day={DAY} tripId="trip1" legs={[]} accommodations={[]} />)
-    expect(screen.getByText(/add leg after Paris/)).toBeInTheDocument()
+    expect(screen.getByText(/add transport\/tour after Paris/)).toBeInTheDocument()
   })
 
   it('shows TransportCard for a stop that has a departing leg', () => {
     vi.mocked(useStops).mockReturnValue({ stops: [STOP] })
     render(<DayCard day={DAY} tripId="trip1" legs={[LEG_SAME_DAY]} accommodations={[]} />)
     expect(screen.getByTestId('transport-card')).toBeInTheDocument()
-    expect(screen.queryByText(/add leg after Paris/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/add transport\/tour after Paris/)).not.toBeInTheDocument()
   })
 
   it('shows empty accommodation card when no accommodation set', () => {

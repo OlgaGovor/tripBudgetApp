@@ -12,6 +12,7 @@ import { useAccommodations } from '../../planner/hooks/useAccommodations'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { db } from '../../../db/db'
 import { TripRepository } from '../../../db/repositories/TripRepository'
+import { isOvernightTransport } from '../../../db/repositories/TransportLegRepository'
 import CalendarGrid from './CalendarGrid'
 import { getDayCardStatus, type BudgetStatus } from '../../../lib/budget'
 import { useProgressiveCount } from '../../../lib/useProgressiveCount'
@@ -41,16 +42,38 @@ const CalendarPage: React.FC = () => {
 
   const today = new Date().toISOString().slice(0, 10)
 
+  // Place shown per day: the accommodation's city; otherwise, if an overnight transport
+  // leg departs that day, its departure city; otherwise nothing.
   const stopNamesByDayId = useLiveQuery(async () => {
     if (!days.length) return {}
     const dayIds = days.map(d => d.id)
-    const allStops = await db.stops.where('dayId').anyOf(dayIds).sortBy('order')
-    const firstByDay: Record<string, string> = {}
-    for (const stop of allStops) {
-      if (!(stop.dayId in firstByDay)) firstByDay[stop.dayId] = stop.placeName
+    const allStops = await db.stops.where('dayId').anyOf(dayIds).toArray()
+    const stopName = new Map(allStops.map(s => [s.id, s.placeName]))
+    const accomById = new Map(accommodations.map(a => [a.id, a]))
+    const result: Record<string, string> = {}
+    for (const day of days) {
+      if (day.accommodationId) {
+        const accom = accomById.get(day.accommodationId)
+        // Prefer the city; fall back to the accommodation's place (or name) when no city
+        // was captured (e.g. a manually-typed hotel).
+        const place = accom?.city ?? accom?.placeName ?? accom?.name
+        if (place) result[day.id] = place
+        continue
+      }
+      // Overnight legs cover every night they span: [departureDate, arrivalDate).
+      const overnight = legs.find(l => {
+        if (!isOvernightTransport(l) || !l.departureDateTime || !l.arrivalDateTime) return false
+        const dep = l.departureDateTime.slice(0, 10)
+        const arr = l.arrivalDateTime.slice(0, 10)
+        return dep <= day.date && day.date < arr
+      })
+      if (overnight) {
+        const dep = stopName.get(overnight.fromStopId)
+        if (dep) result[day.id] = dep
+      }
     }
-    return firstByDay
-  }, [days]) ?? {}
+    return result
+  }, [days, accommodations, legs]) ?? {}
 
   const months = useMemo(
     () => trip ? monthsBetween(trip.startDate, trip.endDate) : [],
@@ -128,7 +151,7 @@ const CalendarPage: React.FC = () => {
                   budgetStatusByDate={budgetStatusByDate}
                   spentByDate={spentByDate}
                   effectiveDailyBudget={effectiveDailyBudget}
-                  onDayClick={_date => history.push(`/trips/${tripId}/plan`)}
+                  onDayClick={date => history.push(`/trips/${tripId}/plan?date=${date}`)}
                 />
               </div>
             )

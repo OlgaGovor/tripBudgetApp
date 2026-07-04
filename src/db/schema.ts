@@ -43,7 +43,7 @@ export interface TransportLeg {
   tripId: string
   fromStopId: string
   toStopId: string
-  method: 'car' | 'bus' | 'train' | 'plane' | 'walk' | 'boat' | 'ferry'
+  method: 'car' | 'bus' | 'train' | 'plane' | 'walk' | 'boat' | 'ferry' | 'tour'
   status: 'not_booked' | 'booked' | 'booked_paid'
   departureDateTime?: string  // ISO datetime
   arrivalDateTime?: string    // ISO datetime

@@ -40,7 +40,7 @@ const ExpensesPage: React.FC = () => {
 
   const categoryById = Object.fromEntries(categories.map(c => [c.id, c]))
 
-  const CATEGORY_ORDER = ['cat-transport', 'cat-accommodation', 'cat-food']
+  const CATEGORY_ORDER = ['cat-transport', 'cat-accommodation', 'cat-experience', 'cat-food']
 
   function groupByCategory(items: typeof expenses) {
     const map = new Map<string, typeof expenses>()
@@ -88,8 +88,7 @@ const ExpensesPage: React.FC = () => {
                       <IonItem key={e.id} lines="none" button onClick={() => { setEditExpense(e); setShowForm(true) }}>
                         <IonLabel>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {e.accommodationId && <span style={{ fontSize: '0.85rem' }}>🏨</span>}
-                            {e.transportLegId && <span style={{ fontSize: '0.85rem' }}>🚌</span>}
+                            {cat?.icon && <span style={{ fontSize: '0.85rem' }}>{cat.icon}</span>}
                             {e.note && <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--ion-color-dark)' }}>{e.note}</p>}
                           </div>
                         </IonLabel>

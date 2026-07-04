@@ -5,7 +5,7 @@ const ACCOM_COLORS: Record<Accommodation['status'], string> = {
   not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
 }
 const METHOD_ICONS: Record<string, string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
 }
 const TRANSPORT_STATUS_DOT: Record<TransportLeg['status'], string> = {
   not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
@@ -16,6 +16,7 @@ interface Props {
   day?: Day
   accommodation?: Accommodation
   departingLegs: TransportLeg[]
+  transitLeg?: TransportLeg
   firstStopName?: string
   budgetStatus?: BudgetStatus
   dailySpent?: number
@@ -25,14 +26,21 @@ interface Props {
 }
 
 const DayCell: React.FC<Props> = ({
-  calendarDate, day, accommodation, departingLegs, firstStopName,
+  calendarDate, day, accommodation, departingLegs, transitLeg, firstStopName,
   budgetStatus, dailySpent, effectiveDailyBudget, isInHighlightRange, onClick,
 }) => {
   const dateNum = parseInt(calendarDate.slice(8), 10)
   const isTrip = !!day
   const isToday = calendarDate === new Date().toISOString().slice(0, 10)
-  const hasGap = isTrip && !accommodation && !departingLegs.some(l => l.arrivalDateTime)
+  // An overnight transport leg spanning this night covers it instead of a hotel.
+  const overnightLeg = !accommodation ? transitLeg : undefined
+  const hasGap = isTrip && !accommodation && !overnightLeg && !departingLegs.some(l => l.arrivalDateTime)
   const accomColor = accommodation ? ACCOM_COLORS[accommodation.status] : undefined
+  // Show the method icon on every night a leg spans (the spanning leg only departs once,
+  // so add it on the in-transit nights where it isn't already a departing leg).
+  const iconLegs = transitLeg && !departingLegs.includes(transitLeg)
+    ? [...departingLegs, transitLeg]
+    : departingLegs
 
   return (
     <div
@@ -66,9 +74,8 @@ const DayCell: React.FC<Props> = ({
       </div>
       {day && (
         <>
-          {/* Row 2: day number + daily spend amount */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '0.75rem' }}>
-            <div style={{ fontSize: '0.6rem', color: 'var(--ion-color-medium)' }}>Day {day.dayNumber}</div>
+          {/* Row 2: daily spend amount */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minHeight: '0.75rem' }}>
             <div style={{
               fontSize: '0.55rem', fontWeight: 600,
               color: effectiveDailyBudget && dailySpent ? DAY_CARD_COLORS[getDayCardStatus(dailySpent / effectiveDailyBudget)] : 'transparent',
@@ -81,12 +88,19 @@ const DayCell: React.FC<Props> = ({
           <div style={{ fontSize: '0.6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', minHeight: '0.75rem' }}>
             {firstStopName?.slice(0, 12) ?? ''}
           </div>
-          {/* Row 4: accommodation bar */}
-          <div style={{ height: 3, borderRadius: 2, marginTop: 2, background: accomColor ?? 'transparent' }} />
+          {/* Row 4: accommodation bar (solid), or overnight-transport bar (dashed, by booking status) */}
+          <div style={{
+            height: 3, borderRadius: 2, marginTop: 2,
+            background: accomColor
+              ? accomColor
+              : overnightLeg
+                ? `repeating-linear-gradient(90deg, ${TRANSPORT_STATUS_DOT[overnightLeg.status]} 0 4px, transparent 4px 7px)`
+                : 'transparent',
+          }} />
           {/* Row 5: transport icons */}
           <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginTop: 1, minHeight: '0.75rem' }}>
-            {departingLegs.map((l, i) => (
-              <span key={i} style={{ position: 'relative', display: 'inline-block', fontSize: '0.55rem' }}>
+            {iconLegs.map(l => (
+              <span key={l.id} style={{ position: 'relative', display: 'inline-block', fontSize: '0.55rem' }}>
                 {METHOD_ICONS[l.method] ?? '🚐'}
                 <span style={{
                   position: 'absolute', bottom: 0, right: -1,

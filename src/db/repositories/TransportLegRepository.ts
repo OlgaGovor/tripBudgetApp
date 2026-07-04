@@ -8,7 +8,7 @@ import { ExpenseRepository } from './ExpenseRepository'
 import { TripRepository } from './TripRepository'
 
 const METHOD_EMOJIS: Record<TransportLeg['method'], string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️',
+  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
 }
 
 async function syncExpenseForTransportLeg(legId: string): Promise<void> {
@@ -23,11 +23,13 @@ async function syncExpenseForTransportLeg(legId: string): Promise<void> {
   const toStop = await db.stops.get(leg.toStopId)
   const note = `${METHOD_EMOJIS[leg.method]} ${fromStop?.placeName ?? '?'} → ${toStop?.placeName ?? '?'}`
   const date = leg.departureDateTime ? leg.departureDateTime.slice(0, 10) : new Date().toISOString().slice(0, 10)
+  // Tours are experiences, not transport.
+  const categoryId = leg.method === 'tour' ? 'cat-experience' : 'cat-transport'
   if (existing) {
-    await ExpenseRepository.update(existing.id, { amount: leg.price, currency: leg.priceCurrency, note, date })
+    await ExpenseRepository.update(existing.id, { amount: leg.price, currency: leg.priceCurrency, note, date, categoryId })
   } else {
     await ExpenseRepository.create({
-      tripId: leg.tripId, categoryId: 'cat-transport',
+      tripId: leg.tripId, categoryId,
       amount: leg.price, currency: leg.priceCurrency,
       date, note, transportLegId: legId,
     })
