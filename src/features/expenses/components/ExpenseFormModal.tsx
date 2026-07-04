@@ -7,7 +7,7 @@ import { ExpenseRepository } from '../../../db/repositories/ExpenseRepository'
 import type { Expense, ExpenseCategory } from '../../../db/schema'
 import { getExchangeRates, convertAmount } from '../../../lib/currency'
 
-const COMMON_CURRENCIES = ['USD', 'EUR', 'GBP', 'PLN', 'JPY', 'CHF', 'AUD', 'CAD', 'CZK', 'NOK', 'SEK', 'DKK']
+const COMMON_CURRENCIES = ['USD', 'EUR', 'GBP', 'PLN', 'UZS', 'TJS', 'KGS', 'KZT', 'CNY', 'JPY', 'CHF', 'AUD', 'CAD', 'CZK', 'NOK', 'SEK', 'DKK']
 
 interface Props {
   isOpen: boolean
