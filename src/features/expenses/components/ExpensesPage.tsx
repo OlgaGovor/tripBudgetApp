@@ -138,14 +138,13 @@ const ExpensesPage: React.FC = () => {
 
             <IonTitle>Expenses</IonTitle>
           </IonToolbar>
-        </IonHeader>
-
-        <IonContent>
           <BudgetBar
               trip={trip}
               totalSpent={totalSpent}
           />
+        </IonHeader>
 
+        <IonContent>
           {expenses.length === 0 && (
               <p
                   style={{
