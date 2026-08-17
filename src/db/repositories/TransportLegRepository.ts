@@ -163,7 +163,6 @@ export const TransportLegRepository = {
   async delete(id: string): Promise<void> {
     const leg = await db.transportLegs.get(id)
     if (leg) {
-      await db.stops.delete(leg.toStopId)
       const expense = await db.expenses.where('transportLegId').equals(id).first()
       if (expense) await db.expenses.delete(expense.id)
       await TripRepository.touch(leg.tripId)
