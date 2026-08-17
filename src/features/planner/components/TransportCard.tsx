@@ -24,6 +24,11 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
   const arr = leg.arrivalDateTime?.slice(11, 16)
   const timeStr = dep && arr ? `${dep} → ${arr}${overnight ? ' next day' : ''}` : (dep ?? '')
 
+  const title =
+      leg.method === 'tour' && leg.notes?.trim()
+          ? `Tour to ${leg.notes}`
+          : `${fromStop?.placeName ?? '…'} → ${toStop?.placeName ?? '…'}`
+
   return (
     <>
       <div style={{
@@ -35,8 +40,11 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
         <span style={{ fontSize: '1rem', flexShrink: 0 }}>{METHOD_ICONS[leg.method]}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, color: '#444' }}>
-            <span onClick={() => setShowEdit(true)} style={{ cursor: 'pointer' }}>
-              {fromStop?.placeName ?? '…'} → {toStop?.placeName ?? '…'}
+            <span
+              onClick={() => setShowEdit(true)}
+              style={{ cursor: 'pointer' }}
+            >
+              {title}
             </span>
             {leg.bookingLink && (
               <a href={leg.bookingLink} target="_blank" rel="noreferrer" style={{ marginLeft: 8, fontSize: '0.8rem' }}>🔗</a>
