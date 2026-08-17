@@ -72,10 +72,18 @@ const SummaryPage: React.FC = () => {
       setMonthGroups(groups)
       // Expand the first month by default.
       setExpandedMonths(new Set(groups.length ? [groups[0].key] : []))
+
       const start = new Date(trip.startDate + 'T00:00:00Z')
-      const end = new Date(trip.endDate + 'T00:00:00Z')
-      const totalDays = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1
-      setDailyAvg(totalDays > 0 ? total / totalDays : 0)
+      const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
+      const daysPassed = Math.max(
+          1,
+          Math.floor((today.getTime() - start.getTime()) / 86400000) + 1
+      )
+      const spentTillToday = expenses
+          .filter(e => e.date <= today.toISOString().slice(0, 10))
+          .reduce((sum, e) => sum + e.amountConverted, 0)
+      setDailyAvg(spentTillToday / daysPassed)
+
       setPackingStats({ total: items.length, checked: items.filter(i => i.checked).length })
     })
   }, [trip, tripId])
