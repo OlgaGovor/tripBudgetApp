@@ -8,23 +8,40 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { TransportLegRepository } from '../../../db/repositories/TransportLegRepository'
 import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
+import PlaceSearchModal from './PlaceSearchModal'
+import CurrencySelectModal from './CurrencySelectModal'
+
+const LAST_USED_CURRENCY_KEY = 'expense-last-used-currency'
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z')
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
-import PlaceSearchModal from './PlaceSearchModal'
-import CurrencySelectModal from './CurrencySelectModal'
 
-const METHODS: TransportLeg['method'][] = ['car', 'bus', 'train', 'plane', 'walk', 'boat', 'ferry', 'tour']
+const METHODS: TransportLeg['method'][] = [
+  'car', 'bus', 'train', 'plane', 'walk', 'boat', 'ferry', 'tour',
+]
+
 const METHOD_LABELS: Record<TransportLeg['method'], string> = {
-  car: '🚗 Car', bus: '🚌 Bus', train: '🚆 Train', plane: '✈️ Plane',
-  walk: '🚶 Walk', boat: '⛵ Boat', ferry: '⛴️ Ferry', tour: '📸 Tour',
+  car: '🚗 Car',
+  bus: '🚌 Bus',
+  train: '🚆 Train',
+  plane: '✈️ Plane',
+  walk: '🚶 Walk',
+  boat: '⛵ Boat',
+  ferry: '⛴️ Ferry',
+  tour: '📸 Tour',
 }
-const STATUSES: TransportLeg['status'][] = ['not_booked', 'booked', 'booked_paid']
+
+const STATUSES: TransportLeg['status'][] = [
+  'not_booked', 'booked', 'booked_paid',
+]
+
 const STATUS_LABELS: Record<TransportLeg['status'], string> = {
-  not_booked: '🔴 Not booked', booked: '🟡 Booked', booked_paid: '🟢 Booked & Paid',
+  not_booked: '🔴 Not booked',
+  booked: '🟡 Booked',
+  booked_paid: '🟢 Booked & Paid',
 }
 
 interface Props {
@@ -36,7 +53,14 @@ interface Props {
   initialDate?: string
 }
 
-const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fromStopId, leg, initialDate }) => {
+const TransportLegFormModal: React.FC<Props> = ({
+                                                  isOpen,
+                                                  onDismiss,
+                                                  tripId,
+                                                  fromStopId,
+                                                  leg,
+                                                  initialDate,
+                                                }) => {
   const [method, setMethod] = useState<TransportLeg['method']>('train')
   const [status, setStatus] = useState<TransportLeg['status']>('not_booked')
   const [departureDateTime, setDepartureDateTime] = useState('')
@@ -53,39 +77,71 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
   const [showCurrencySelect, setShowCurrencySelect] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const trip = useLiveQuery(() => db.trips.get(tripId), [tripId])
+  const trip = useLiveQuery(
+      () => db.trips.get(tripId),
+      [tripId]
+  )
 
   const nearbyStops = useLiveQuery(async () => {
     const fromStop = await db.stops.get(fromStopId)
     if (!fromStop) return []
+
     const fromDay = await db.days.get(fromStop.dayId)
     if (!fromDay) return []
+
     const endDate = addDays(fromDay.date, 3)
+
     const nearbyDays = await db.days
-      .where('tripId').equals(tripId)
-      .filter(dd => dd.date >= fromDay.date && dd.date <= endDate)
-      .sortBy('date')
+        .where('tripId')
+        .equals(tripId)
+        .filter(dd => dd.date >= fromDay.date && dd.date <= endDate)
+        .sortBy('date')
+
     const result: Array<{ stop: Stop; dayNumber: number }> = []
+
     for (const nd of nearbyDays) {
-      const ndStops = await db.stops.where('dayId').equals(nd.id).sortBy('order')
-      for (const s of ndStops) result.push({ stop: s, dayNumber: nd.dayNumber })
+      const ndStops = await db.stops
+          .where('dayId')
+          .equals(nd.id)
+          .sortBy('order')
+
+      for (const s of ndStops) {
+        result.push({
+          stop: s,
+          dayNumber: nd.dayNumber,
+        })
+      }
     }
+
     return result
   }, [fromStopId, tripId])
 
   const toStop = useLiveQuery<Stop | undefined>(
-    () => leg?.toStopId ? db.stops.get(leg.toStopId) : Promise.resolve(undefined),
-    [leg?.toStopId]
+      () => leg?.toStopId
+          ? db.stops.get(leg.toStopId)
+          : Promise.resolve(undefined),
+      [leg?.toStopId]
   )
 
   // Reinitialise all fields when modal opens or the leg being edited changes.
-  // toStop is included so destination fills in once the liveQuery resolves.
   useEffect(() => {
     if (!isOpen) return
+
+    const lastUsedCurrency = localStorage.getItem(LAST_USED_CURRENCY_KEY)
+
     setMethod(leg?.method ?? 'train')
     setStatus(leg?.status ?? 'not_booked')
-    setDepartureDateTime(leg?.departureDateTime ?? (initialDate ? `${initialDate}T12:00` : ''))
-    setArrivalDateTime(leg?.arrivalDateTime ?? (initialDate ? `${initialDate}T12:00` : ''))
+
+    setDepartureDateTime(
+        leg?.departureDateTime
+        ?? (initialDate ? `${initialDate}T12:00` : '')
+    )
+
+    setArrivalDateTime(
+        leg?.arrivalDateTime
+        ?? (initialDate ? `${initialDate}T12:00` : '')
+    )
+
     setDestinationName(toStop?.placeName ?? '')
     setDestinationLat(toStop?.lat)
     setDestinationLng(toStop?.lng)
@@ -93,46 +149,58 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
     setBookingLink(leg?.bookingLink ?? '')
     setNotes(leg?.notes ?? '')
     setPrice(leg?.price?.toString() ?? '')
-    setPriceCurrency(leg?.priceCurrency ?? trip?.defaultCurrency ?? '')
-  }, [isOpen, leg?.id, toStop, trip?.defaultCurrency]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const timeValid = !departureDateTime || !arrivalDateTime || arrivalDateTime >= departureDateTime
+    setPriceCurrency(
+        leg?.priceCurrency
+        ?? lastUsedCurrency
+        ?? trip?.defaultCurrency
+        ?? ''
+    )
+  }, [isOpen, leg?.id, toStop, trip?.defaultCurrency, initialDate])
 
-  // Show the selected stop first, then the rest in their original order.
+  const timeValid =
+      !departureDateTime ||
+      !arrivalDateTime ||
+      arrivalDateTime >= departureDateTime
+
   const orderedStops = nearbyStops
-    ? [
+      ? [
         ...nearbyStops.filter(ns => ns.stop.id === selectedToStopId),
         ...nearbyStops.filter(ns => ns.stop.id !== selectedToStopId),
       ]
-    : []
+      : []
 
   const dirty = !leg
-    || method !== leg.method
-    || status !== leg.status
-    || departureDateTime !== (leg.departureDateTime ?? '')
-    || arrivalDateTime !== (leg.arrivalDateTime ?? '')
-    || destinationName !== (toStop?.placeName ?? '')
-    || destinationLat !== toStop?.lat
-    || destinationLng !== toStop?.lng
-    || selectedToStopId !== leg.toStopId
-    || bookingLink !== (leg.bookingLink ?? '')
-    || notes !== (leg.notes ?? '')
-    || price !== (leg.price?.toString() ?? '')
-    || priceCurrency !== (leg.priceCurrency ?? trip?.defaultCurrency ?? '')
+      || method !== leg.method
+      || status !== leg.status
+      || departureDateTime !== (leg.departureDateTime ?? '')
+      || arrivalDateTime !== (leg.arrivalDateTime ?? '')
+      || destinationName !== (toStop?.placeName ?? '')
+      || destinationLat !== toStop?.lat
+      || destinationLng !== toStop?.lng
+      || selectedToStopId !== leg.toStopId
+      || bookingLink !== (leg.bookingLink ?? '')
+      || notes !== (leg.notes ?? '')
+      || price !== (leg.price?.toString() ?? '')
+      || priceCurrency !== (leg.priceCurrency ?? trip?.defaultCurrency ?? '')
 
   async function handleDelete() {
     if (!leg) return
+
     await TransportLegRepository.delete(leg.id)
     onDismiss()
   }
 
   async function handleSave() {
     if (!destinationName.trim() || !timeValid) return
+
     const parsedPrice = price ? parseFloat(price) : undefined
+
     if (leg) {
       await TransportLegRepository.update({
         id: leg.id,
-        method, status,
+        method,
+        status,
         departureDateTime: departureDateTime || undefined,
         arrivalDateTime: arrivalDateTime || undefined,
         destinationName,
@@ -145,146 +213,342 @@ const TransportLegFormModal: React.FC<Props> = ({ isOpen, onDismiss, tripId, fro
       })
     } else {
       await TransportLegRepository.create({
-        tripId, fromStopId,
+        tripId,
+        fromStopId,
         toStopId: selectedToStopId,
-        method, status,
+        method,
+        status,
         departureDateTime: departureDateTime || undefined,
         arrivalDateTime: arrivalDateTime || undefined,
-        destinationName, destinationLat, destinationLng,
+        destinationName,
+        destinationLat,
+        destinationLng,
         price: parsedPrice,
         priceCurrency: priceCurrency || undefined,
         bookingLink: bookingLink || undefined,
         notes: notes || undefined,
       })
     }
+
+    if (priceCurrency) {
+      localStorage.setItem(LAST_USED_CURRENCY_KEY, priceCurrency)
+    }
+
     onDismiss()
   }
 
   return (
-    <>
-      <IonModal isOpen={isOpen} onDidDismiss={onDismiss}>
-        <IonHeader>
-          <IonToolbar>
-            <IonButtons slot="start"><IonButton onClick={onDismiss}>Cancel</IonButton></IonButtons>
-            <IonTitle>{leg ? 'Edit transport/tour' : 'Add transport/tour'}</IonTitle>
-            <IonButtons slot="end">
-              {leg && (
-                <IonButton color="danger" onClick={() => setShowDeleteConfirm(true)}>
-                  <IonIcon slot="icon-only" icon={trashOutline} />
-                </IonButton>
-              )}
-              <IonButton strong onClick={handleSave} disabled={!destinationName.trim() || !timeValid || !dirty}>Save</IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding">
-          <IonItem>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 0' }}>
-              <span style={{ flexShrink: 0, fontSize: '0.85rem', fontWeight: 500 }}>Destination *</span>
-              <div style={{ display: 'flex', gap: 6, flex: 1, overflowX: 'auto', paddingBottom: 2 }}>
-                {orderedStops.map(ns => (
-                  <div
-                    key={ns.stop.id}
-                    onClick={() => { setDestinationName(ns.stop.placeName); setDestinationLat(ns.stop.lat); setDestinationLng(ns.stop.lng); setSelectedToStopId(ns.stop.id) }}
-                    style={{
-                      flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
-                      background: selectedToStopId === ns.stop.id ? 'var(--ion-color-primary)' : 'var(--ion-color-light-shade)',
-                      color: selectedToStopId === ns.stop.id ? '#fff' : 'inherit',
-                      cursor: 'pointer', fontSize: '0.82rem',
-                    }}
-                  >
-                    {ns.stop.placeName}
-                    <span style={{ fontSize: '0.72rem', opacity: 0.7, marginLeft: 3 }}>D{ns.dayNumber}</span>
-                  </div>
-                ))}
-                {!nearbyStops?.some(ns => ns.stop.id === selectedToStopId) && destinationName && (
-                  <div style={{
-                    flexShrink: 0, padding: '3px 8px', borderRadius: 10, whiteSpace: 'nowrap',
-                    background: 'var(--ion-color-primary)', color: '#fff', fontSize: '0.82rem',
-                  }}>
-                    {destinationName}
-                  </div>
-                )}
-              </div>
-              <IonButton fill="clear" size="small" style={{ flexShrink: 0 }} onClick={() => setShowPlaceSearch(true)}>
-                <IonIcon icon={searchOutline} />
-              </IonButton>
-            </div>
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Method</IonLabel>
-            <IonSelect interface="popover" value={method} onIonChange={e => setMethod(e.detail.value)}>
-              {METHODS.map(m => <IonSelectOption key={m} value={m}>{METHOD_LABELS[m]}</IonSelectOption>)}
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Status</IonLabel>
-            <IonSelect interface="popover" value={status} onIonChange={e => setStatus(e.detail.value)}>
-              {STATUSES.map(s => <IonSelectOption key={s} value={s}>{STATUS_LABELS[s]}</IonSelectOption>)}
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Departure date & time</IonLabel>
-            <IonInput type="datetime-local" value={departureDateTime} onIonInput={e => setDepartureDateTime(e.detail.value ?? '')} />
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Arrival date & time</IonLabel>
-            <IonInput type="datetime-local" value={arrivalDateTime} onIonInput={e => setArrivalDateTime(e.detail.value ?? '')} />
-          </IonItem>
-          {!timeValid && <p style={{ color: 'var(--ion-color-danger)', fontSize: '0.75rem', margin: '0 1rem 0.5rem' }}>Arrival must be at or after departure</p>}
-          <IonItem>
-            <IonLabel position="stacked">Price</IonLabel>
-            <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
-              <IonInput
-                type="number" value={price} onIonInput={e => setPrice(e.detail.value ?? '')}
-                placeholder="0" style={{ flex: 1 }}
-              />
-              <div
-                onClick={() => setShowCurrencySelect(true)}
-                style={{
-                  flexShrink: 0, minWidth: 52, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
-                  background: 'var(--ion-color-light-shade)', textAlign: 'center',
-                  fontSize: '0.85rem', fontWeight: 600, color: priceCurrency ? 'inherit' : 'var(--ion-color-medium)',
-                }}
-              >
-                {priceCurrency || 'CCY'}
-              </div>
-            </div>
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Booking link</IonLabel>
-            <IonInput value={bookingLink} onIonInput={e => setBookingLink(e.detail.value ?? '')} placeholder="https://..." />
-          </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Notes</IonLabel>
-            <IonInput value={notes} onIonInput={e => setNotes(e.detail.value ?? '')} placeholder="Platform 3, seat 14A..." />
-          </IonItem>
-        </IonContent>
-      </IonModal>
+      <>
+        <IonModal isOpen={isOpen} onDidDismiss={onDismiss}>
+          <IonHeader>
+            <IonToolbar>
+              <IonButtons slot="start">
+                <IonButton onClick={onDismiss}>Cancel</IonButton>
+              </IonButtons>
 
-      <PlaceSearchModal
-        isOpen={showPlaceSearch}
-        onDismiss={() => setShowPlaceSearch(false)}
-        onSelect={r => { setDestinationName(r.name); setDestinationLat(r.lat); setDestinationLng(r.lng); setSelectedToStopId(undefined) }}
-        title="Search destination"
-      />
-      <CurrencySelectModal
-        isOpen={showCurrencySelect}
-        onDismiss={() => setShowCurrencySelect(false)}
-        onSelect={code => setPriceCurrency(code)}
-        selectedCode={priceCurrency}
-      />
-      <IonAlert
-        isOpen={showDeleteConfirm}
-        onDidDismiss={() => setShowDeleteConfirm(false)}
-        header="Delete transport?"
-        message="Delete this transport leg? This can't be undone."
-        buttons={[
-          { text: 'Cancel', role: 'cancel' },
-          { text: 'Delete', role: 'destructive', handler: handleDelete },
-        ]}
-      />
-    </>
+              <IonTitle>
+                {leg ? 'Edit transport/tour' : 'Add transport/tour'}
+              </IonTitle>
+
+              <IonButtons slot="end">
+                {leg && (
+                    <IonButton
+                        color="danger"
+                        onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <IonIcon slot="icon-only" icon={trashOutline} />
+                    </IonButton>
+                )}
+
+                <IonButton
+                    strong
+                    onClick={handleSave}
+                    disabled={
+                        !destinationName.trim() ||
+                        !timeValid ||
+                        !dirty
+                    }
+                >
+                  Save
+                </IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+
+          <IonContent className="ion-padding">
+            <IonItem>
+              <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '8px 0',
+                  }}
+              >
+              <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                  }}
+              >
+                Destination *
+              </span>
+
+                <div
+                    style={{
+                      display: 'flex',
+                      gap: 6,
+                      flex: 1,
+                      overflowX: 'auto',
+                      paddingBottom: 2,
+                    }}
+                >
+                  {orderedStops.map(ns => (
+                      <div
+                          key={ns.stop.id}
+                          onClick={() => {
+                            setDestinationName(ns.stop.placeName)
+                            setDestinationLat(ns.stop.lat)
+                            setDestinationLng(ns.stop.lng)
+                            setSelectedToStopId(ns.stop.id)
+                          }}
+                          style={{
+                            flexShrink: 0,
+                            padding: '3px 8px',
+                            borderRadius: 10,
+                            whiteSpace: 'nowrap',
+                            background:
+                                selectedToStopId === ns.stop.id
+                                    ? 'var(--ion-color-primary)'
+                                    : 'var(--ion-color-light-shade)',
+                            color:
+                                selectedToStopId === ns.stop.id
+                                    ? '#fff'
+                                    : 'inherit',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                          }}
+                      >
+                        {ns.stop.placeName}
+
+                        <span
+                            style={{
+                              fontSize: '0.72rem',
+                              opacity: 0.7,
+                              marginLeft: 3,
+                            }}
+                        >
+                      D{ns.dayNumber}
+                    </span>
+                      </div>
+                  ))}
+
+                  {!nearbyStops?.some(
+                      ns => ns.stop.id === selectedToStopId
+                  ) && destinationName && (
+                      <div
+                          style={{
+                            flexShrink: 0,
+                            padding: '3px 8px',
+                            borderRadius: 10,
+                            whiteSpace: 'nowrap',
+                            background: 'var(--ion-color-primary)',
+                            color: '#fff',
+                            fontSize: '0.82rem',
+                          }}
+                      >
+                        {destinationName}
+                      </div>
+                  )}
+                </div>
+
+                <IonButton
+                    fill="clear"
+                    size="small"
+                    style={{ flexShrink: 0 }}
+                    onClick={() => setShowPlaceSearch(true)}
+                >
+                  <IonIcon icon={searchOutline} />
+                </IonButton>
+              </div>
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Method</IonLabel>
+              <IonSelect
+                  interface="popover"
+                  value={method}
+                  onIonChange={e => setMethod(e.detail.value)}
+              >
+                {METHODS.map(m => (
+                    <IonSelectOption key={m} value={m}>
+                      {METHOD_LABELS[m]}
+                    </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Status</IonLabel>
+              <IonSelect
+                  interface="popover"
+                  value={status}
+                  onIonChange={e => setStatus(e.detail.value)}
+              >
+                {STATUSES.map(s => (
+                    <IonSelectOption key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">
+                Departure date & time
+              </IonLabel>
+              <IonInput
+                  type="datetime-local"
+                  value={departureDateTime}
+                  onIonInput={e =>
+                      setDepartureDateTime(e.detail.value ?? '')
+                  }
+              />
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">
+                Arrival date & time
+              </IonLabel>
+              <IonInput
+                  type="datetime-local"
+                  value={arrivalDateTime}
+                  onIonInput={e =>
+                      setArrivalDateTime(e.detail.value ?? '')
+                  }
+              />
+            </IonItem>
+
+            {!timeValid && (
+                <p
+                    style={{
+                      color: 'var(--ion-color-danger)',
+                      fontSize: '0.75rem',
+                      margin: '0 1rem 0.5rem',
+                    }}
+                >
+                  Arrival must be at or after departure
+                </p>
+            )}
+
+            <IonItem>
+              <IonLabel position="stacked">Price</IonLabel>
+
+              <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    width: '100%',
+                    alignItems: 'center',
+                  }}
+              >
+                <IonInput
+                    type="number"
+                    value={price}
+                    onIonInput={e =>
+                        setPrice(e.detail.value ?? '')
+                    }
+                    placeholder="0"
+                    style={{ flex: 1 }}
+                />
+
+                <div
+                    onClick={() => setShowCurrencySelect(true)}
+                    style={{
+                      flexShrink: 0,
+                      minWidth: 52,
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      background: 'var(--ion-color-light-shade)',
+                      textAlign: 'center',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      color: priceCurrency
+                          ? 'inherit'
+                          : 'var(--ion-color-medium)',
+                    }}
+                >
+                  {priceCurrency || 'CCY'}
+                </div>
+              </div>
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">
+                Booking link
+              </IonLabel>
+              <IonInput
+                  value={bookingLink}
+                  onIonInput={e =>
+                      setBookingLink(e.detail.value ?? '')
+                  }
+                  placeholder="https://..."
+              />
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Notes</IonLabel>
+              <IonInput
+                  value={notes}
+                  onIonInput={e =>
+                      setNotes(e.detail.value ?? '')
+                  }
+                  placeholder="Platform 3, seat 14A..."
+              />
+            </IonItem>
+          </IonContent>
+        </IonModal>
+
+        <PlaceSearchModal
+            isOpen={showPlaceSearch}
+            onDismiss={() => setShowPlaceSearch(false)}
+            onSelect={r => {
+              setDestinationName(r.name)
+              setDestinationLat(r.lat)
+              setDestinationLng(r.lng)
+              setSelectedToStopId(undefined)
+            }}
+            title="Search destination"
+        />
+
+        <CurrencySelectModal
+            isOpen={showCurrencySelect}
+            onDismiss={() => setShowCurrencySelect(false)}
+            onSelect={code => setPriceCurrency(code)}
+            selectedCode={priceCurrency}
+        />
+
+        <IonAlert
+            isOpen={showDeleteConfirm}
+            onDidDismiss={() => setShowDeleteConfirm(false)}
+            header="Delete transport?"
+            message="Delete this transport leg? This can't be undone."
+            buttons={[
+              {
+                text: 'Cancel',
+                role: 'cancel',
+              },
+              {
+                text: 'Delete',
+                role: 'destructive',
+                handler: handleDelete,
+              },
+            ]}
+        />
+      </>
   )
 }
 
