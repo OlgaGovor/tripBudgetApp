@@ -141,6 +141,7 @@ const ExpensesPage: React.FC = () => {
           <BudgetBar
               trip={trip}
               totalSpent={totalSpent}
+              expenses={expenses}
           />
         </IonHeader>
 
