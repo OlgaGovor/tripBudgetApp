@@ -59,6 +59,32 @@ const PlannerPage: React.FC = () => {
 
   const spentByDate: Record<string, number> = {}
   for (const e of expenses) {
+    if (e.categoryId === 'cat-accommodation' && e.accommodationId) {
+      const accommodation = accommodations.find(a => a.id === e.accommodationId)
+
+      if (accommodation) {
+        const checkIn = new Date(accommodation.checkIn + 'T00:00:00Z')
+        const checkOut = new Date(accommodation.checkOut + 'T00:00:00Z')
+
+        const nights = Math.round(
+            (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+        )
+
+        if (nights > 0) {
+          const dailyAmount = e.amountConverted / nights
+
+          for (let i = 0; i < nights; i++) {
+            const date = new Date(checkIn)
+            date.setUTCDate(date.getUTCDate() + i)
+
+            const dateKey = date.toISOString().slice(0, 10)
+            spentByDate[dateKey] = (spentByDate[dateKey] ?? 0) + dailyAmount
+          }
+
+          continue
+        }
+      }
+    }
     spentByDate[e.date] = (spentByDate[e.date] ?? 0) + e.amountConverted
   }
   let running = 0
