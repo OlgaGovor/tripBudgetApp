@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react'
 import {
-  IonModal, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButtons, IonButton, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButtons,
+  IonButton,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
 } from '@ionic/react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { ExpenseRepository } from '../../../db/repositories/ExpenseRepository'
+import { db } from '../../../db/db'
 import type { Expense, ExpenseCategory } from '../../../db/schema'
 import { getExchangeRates, convertAmount } from '../../../lib/currency'
 
@@ -24,14 +36,46 @@ interface Props {
 }
 
 const ExpenseFormModal: React.FC<Props> = ({
-                                             isOpen, onDismiss, tripId, tripCurrency, categories, expense,
-                                           }) => {
+  isOpen,
+  onDismiss,
+  tripId,
+  tripCurrency,
+  categories,
+  expense,
+}) => {
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState(tripCurrency)
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
+
+  const accommodation = useLiveQuery(
+    () =>
+      expense?.accommodationId
+        ? db.accommodations.get(expense.accommodationId)
+        : undefined,
+    [expense?.accommodationId],
+  )
+
+  const isAccommodationExpense =
+    expense?.categoryId === 'cat-accommodation' &&
+    !!accommodation
+
+  const accommodationNights = accommodation
+    ? Math.round(
+        (
+          new Date(accommodation.checkOut + 'T00:00:00Z').getTime() -
+          new Date(accommodation.checkIn + 'T00:00:00Z').getTime()
+        ) /
+          (1000 * 60 * 60 * 24),
+      )
+    : 0
+
+  const accommodationDailyAmount =
+    isAccommodationExpense && accommodationNights > 0
+      ? parseFloat(amount) / accommodationNights
+      : 0
 
   useEffect(() => {
     if (expense) {
@@ -41,13 +85,16 @@ const ExpenseFormModal: React.FC<Props> = ({
       setDate(expense.date)
       setNote(expense.note ?? '')
     } else {
-      const lastUsedCurrency = localStorage.getItem(LAST_USED_CURRENCY_KEY)
+      const lastUsedCurrency = localStorage.getItem(
+        LAST_USED_CURRENCY_KEY,
+      )
 
       setAmount('')
       setCurrency(
-          lastUsedCurrency && COMMON_CURRENCIES.includes(lastUsedCurrency)
-              ? lastUsedCurrency
-              : tripCurrency
+        lastUsedCurrency &&
+        COMMON_CURRENCIES.includes(lastUsedCurrency)
+          ? lastUsedCurrency
+          : tripCurrency,
       )
       setCategoryId(categories[0]?.id ?? '')
       setDate(new Date().toISOString().slice(0, 10))
@@ -63,11 +110,18 @@ const ExpenseFormModal: React.FC<Props> = ({
       return
     }
 
-    getExchangeRates().then(({ rates }) => {
-      setPreview(
-          `≈ ${convertAmount(n, currency, tripCurrency, rates).toFixed(2)} ${tripCurrency}`
-      )
-    }).catch(() => setPreview(null))
+    getExchangeRates()
+      .then(({ rates }) => {
+        setPreview(
+          `≈ ${convertAmount(
+    n,
+    currency,
+    tripCurrency,
+    rates,
+).toFixed(2)} ${tripCurrency}`,
+        )
+      })
+      .catch(() => setPreview(null))
   }, [amount, currency, tripCurrency])
 
   async function handleSave() {
@@ -80,7 +134,9 @@ const ExpenseFormModal: React.FC<Props> = ({
         amount: n,
         currency,
         categoryId,
-        date,
+        date: isAccommodationExpense
+          ? accommodation!.checkIn
+          : date,
         note: note || undefined,
       })
     } else {
@@ -100,98 +156,164 @@ const ExpenseFormModal: React.FC<Props> = ({
   }
 
   return (
-      <IonModal isOpen={isOpen} onDidDismiss={onDismiss}>
-        <IonHeader>
-          <IonToolbar>
-            <IonButtons slot="start">
-              <IonButton onClick={onDismiss}>Cancel</IonButton>
-            </IonButtons>
+    <IonModal isOpen={isOpen} onDidDismiss={onDismiss}>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onDismiss}>Cancel</IonButton>
+          </IonButtons>
 
-            <IonTitle>
-              {expense ? 'Edit Expense' : 'Add Expense'}
-            </IonTitle>
+          <IonTitle>
+            {expense ? 'Edit Expense' : 'Add Expense'}
+          </IonTitle>
 
-            <IonButtons slot="end">
-              <IonButton
-                  strong
-                  onClick={handleSave}
-                  disabled={!parseFloat(amount) || !categoryId}
+          <IonButtons slot="end">
+            <IonButton
+              strong
+              onClick={handleSave}
+              disabled={!parseFloat(amount) || !categoryId}
+            >
+              Save
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="ion-padding">
+        <IonItem>
+          <IonLabel position="stacked">Amount *</IonLabel>
+
+          <IonInput
+            type="number"
+            value={amount}
+            onIonInput={e => setAmount(e.detail.value ?? '')}
+            placeholder="0.00"
+          />
+
+          {preview && (
+            <p
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--ion-color-medium)',
+                margin: '4px 0 0',
+              }}
+            >
+              {preview}
+            </p>
+          )}
+        </IonItem>
+
+        <IonItem>
+          <IonLabel position="stacked">Currency</IonLabel>
+
+          <IonSelect
+            value={currency}
+            onIonChange={e => setCurrency(e.detail.value)}
+          >
+            {COMMON_CURRENCIES.map(c => (
+              <IonSelectOption key={c} value={c}>
+                {c}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+
+        <IonItem>
+          <IonLabel position="stacked">Category *</IonLabel>
+
+          <IonSelect
+            value={categoryId}
+            onIonChange={e => setCategoryId(e.detail.value)}
+          >
+            {categories.map(c => (
+              <IonSelectOption key={c.id} value={c.id}>
+                {c.icon} {c.label}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+
+        {isAccommodationExpense ? (
+          <IonItem>
+            <IonLabel position="stacked">
+              Accommodation
+            </IonLabel>
+
+            <div
+              style={{
+                width: '100%',
+                padding: '6px 0 10px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                }}
               >
-                Save
-              </IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
+                {new Date(
+                  accommodation.checkIn + 'T00:00:00Z',
+                ).toLocaleDateString('en', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+                {' → '}
+                {new Date(
+                  accommodation.checkOut + 'T00:00:00Z',
+                ).toLocaleDateString('en', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </div>
 
-        <IonContent className="ion-padding">
-          <IonItem>
-            <IonLabel position="stacked">Amount *</IonLabel>
-            <IonInput
-                type="number"
-                value={amount}
-                onIonInput={e => setAmount(e.detail.value ?? '')}
-                placeholder="0.00"
-            />
-            {preview && (
-                <p
-                    style={{
-                      fontSize: '0.8rem',
-                      color: 'var(--ion-color-medium)',
-                      margin: '4px 0 0',
-                    }}
+              {accommodationNights > 0 && (
+                <div
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--ion-color-medium)',
+                    marginTop: 3,
+                  }}
                 >
-                  {preview}
-                </p>
-            )}
+                  {accommodationNights}{' '}
+                  {accommodationNights === 1
+                    ? 'night'
+                    : 'nights'}
+                  {' · '}
+                  {accommodationDailyAmount.toFixed(2)}{' '}
+                  {currency} / night
+                </div>
+              )}
+            </div>
           </IonItem>
-
-          <IonItem>
-            <IonLabel position="stacked">Currency</IonLabel>
-            <IonSelect
-                value={currency}
-                onIonChange={e => setCurrency(e.detail.value)}
-            >
-              {COMMON_CURRENCIES.map(c => (
-                  <IonSelectOption key={c} value={c}>
-                    {c}
-                  </IonSelectOption>
-              ))}
-            </IonSelect>
-          </IonItem>
-
-          <IonItem>
-            <IonLabel position="stacked">Category *</IonLabel>
-            <IonSelect
-                value={categoryId}
-                onIonChange={e => setCategoryId(e.detail.value)}
-            >
-              {categories.map(c => (
-                  <IonSelectOption key={c.id} value={c.id}>
-                    {c.icon} {c.label}
-                  </IonSelectOption>
-              ))}
-            </IonSelect>
-          </IonItem>
-
+        ) : (
           <IonItem>
             <IonLabel position="stacked">Date</IonLabel>
-            <IonInput
-                type="date"
-                value={date}
-                onIonInput={e => setDate(e.detail.value ?? '')}
-            />
-          </IonItem>
 
-          <IonItem>
-            <IonLabel position="stacked">Note</IonLabel>
             <IonInput
-                value={note}
-                onIonInput={e => setNote(e.detail.value ?? '')}
-                placeholder="Optional note..."
+              type="date"
+              value={date}
+              onIonInput={e =>
+                setDate(e.detail.value ?? '')
+              }
             />
           </IonItem>
-        </IonContent>
-      </IonModal>
+        )}
+
+        <IonItem>
+          <IonLabel position="stacked">Note</IonLabel>
+
+          <IonInput
+            value={note}
+            onIonInput={e =>
+              setNote(e.detail.value ?? '')
+            }
+            placeholder="Optional note..."
+          />
+        </IonItem>
+      </IonContent>
+    </IonModal>
   )
 }
 
