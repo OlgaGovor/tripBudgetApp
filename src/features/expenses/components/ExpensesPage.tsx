@@ -1,8 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList,
-  IonButtons, IonButton,
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonButtons,
+  IonButton,
 } from '@ionic/react'
 import {
   add,
@@ -19,12 +29,26 @@ import BudgetBar from './BudgetBar'
 import ExpenseFormModal from './ExpenseFormModal'
 import type { Expense } from '../../../db/schema'
 import { useProgressiveCount } from '../../../lib/useProgressiveCount'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../../db/db'
+
+interface ExpenseAllocation {
+  expense: Expense
+  date: string
+  amount: number
+  amountConverted: number
+}
 
 const ExpensesPage: React.FC = () => {
   const { tripId } = useParams<{ tripId: string }>()
   const history = useHistory()
   const trip = TripRepository.useById(tripId)
   const { expenses, categories } = useExpenses(tripId)
+
+  const accommodations = useLiveQuery(
+    () => db.accommodations.where('tripId').equals(tripId).toArray(),
+    [tripId],
+  ) ?? []
 
   const [totalSpent, setTotalSpent] = useState(0)
   const [showForm, setShowForm] = useState(false)
@@ -37,25 +61,87 @@ const ExpensesPage: React.FC = () => {
     ExpenseRepository.getTotalConverted(tripId).then(setTotalSpent)
   }, [expenses, tripId])
 
+  const accommodationById = Object.fromEntries(
+    accommodations.map(a => [a.id, a])
+  )
+
+  const allocations: ExpenseAllocation[] = []
+
+  for (const expense of expenses) {
+    if (expense.categoryId === 'cat-accommodation' && expense.accommodationId) {
+      const accommodation = accommodationById[expense.accommodationId]
+
+      if (accommodation) {
+        const checkIn = new Date(
+          accommodation.checkIn + 'T00:00:00Z'
+        )
+        const checkOut = new Date(
+          accommodation.checkOut + 'T00:00:00Z'
+        )
+
+        const nights = Math.round(
+          (checkOut.getTime() - checkIn.getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+
+        if (nights > 0) {
+          const dailyAmount = expense.amount / nights
+          const dailyAmountConverted =
+            expense.amountConverted / nights
+
+          for (let i = 0; i < nights; i++) {
+            const date = new Date(checkIn)
+            date.setUTCDate(date.getUTCDate() + i)
+
+            allocations.push({
+              expense,
+              date: date.toISOString().slice(0, 10),
+              amount: dailyAmount,
+              amountConverted: dailyAmountConverted,
+            })
+          }
+
+          continue
+        }
+      }
+    }
+
+    allocations.push({
+      expense,
+      date: expense.date,
+      amount: expense.amount,
+      amountConverted: expense.amountConverted,
+    })
+  }
+
   const sortedSections = Object.entries(
-      expenses.reduce<Record<string, typeof expenses>>((acc, e) => {
-        acc[e.date] = [...(acc[e.date] ?? []), e]
+    allocations.reduce<Record<string, ExpenseAllocation[]>>(
+      (acc, allocation) => {
+        acc[allocation.date] = [
+          ...(acc[allocation.date] ?? []),
+          allocation,
+        ]
+
         return acc
-      }, {})
+      },
+      {}
+    )
   ).sort(([a], [b]) => a.localeCompare(b))
 
   const today = new Date().toISOString().slice(0, 10)
 
-  const todayIndex = sortedSections.findIndex(([date]) => date === today)
+  const todayIndex = sortedSections.findIndex(
+    ([date]) => date === today
+  )
 
   const progressiveSectionCount = useProgressiveCount(
-      sortedSections.length,
-      5
+    sortedSections.length,
+    5
   )
 
   const visibleSectionCount = Math.max(
-      progressiveSectionCount,
-      todayIndex >= 0 ? todayIndex + 1 : 0
+    progressiveSectionCount,
+    todayIndex >= 0 ? todayIndex + 1 : 0
   )
 
   function isDayExpanded(date: string) {
@@ -89,7 +175,7 @@ const ExpensesPage: React.FC = () => {
   if (!trip) return null
 
   const categoryById = Object.fromEntries(
-      categories.map(c => [c.id, c])
+    categories.map(c => [c.id, c])
   )
 
   const CATEGORY_ORDER = [
@@ -99,308 +185,342 @@ const ExpensesPage: React.FC = () => {
     'cat-food',
   ]
 
-  function groupByCategory(items: typeof expenses) {
-    const map = new Map<string, typeof expenses>()
+  function groupByCategory(items: ExpenseAllocation[]) {
+    const map = new Map<string, ExpenseAllocation[]>()
 
-    for (const e of items) {
+    for (const allocation of items) {
+      const categoryId = allocation.expense.categoryId
+
       map.set(
-          e.categoryId,
-          [...(map.get(e.categoryId) ?? []), e]
+        categoryId,
+        [
+          ...(map.get(categoryId) ?? []),
+          allocation,
+        ]
       )
     }
 
     const fixed = CATEGORY_ORDER
-        .filter(id => map.has(id))
-        .map(id => [id, map.get(id)!] as const)
+      .filter(id => map.has(id))
+      .map(id => [id, map.get(id)!] as const)
 
     const custom = Array.from(map.entries()).filter(
-        ([id]) =>
-            !CATEGORY_ORDER.includes(id) &&
-            id !== 'cat-other'
+      ([id]) =>
+        !CATEGORY_ORDER.includes(id) &&
+        id !== 'cat-other'
     )
 
     const other = map.has('cat-other')
-        ? [['cat-other', map.get('cat-other')!] as const]
-        : []
+      ? [['cat-other', map.get('cat-other')!] as const]
+      : []
 
     return [...fixed, ...custom, ...other]
   }
 
   return (
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonButtons slot="start">
-              <IonButton onClick={() => history.push('/')}>
-                <IonIcon icon={homeOutline} />
-              </IonButton>
-            </IonButtons>
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={() => history.push('/')}>
+              <IonIcon icon={homeOutline} />
+            </IonButton>
+          </IonButtons>
 
-            <IonTitle>Expenses</IonTitle>
-          </IonToolbar>
-          <BudgetBar
-              trip={trip}
-              totalSpent={totalSpent}
-              expenses={expenses}
-          />
-        </IonHeader>
+          <IonTitle>Expenses</IonTitle>
+        </IonToolbar>
 
-        <IonContent>
-          {expenses.length === 0 && (
-              <p
-                  style={{
-                    textAlign: 'center',
-                    padding: '2rem',
-                    color: 'var(--ion-color-medium)',
-                  }}
-              >
-                No expenses yet
-              </p>
-          )}
-
-          {sortedSections
-              .slice(0, visibleSectionCount)
-              .map(([date, items], sectionIdx) => {
-                const isExpanded = isDayExpanded(date)
-                const isToday = date === today
-
-                const dayTotal = items.reduce(
-                    (sum, e) => sum + e.amountConverted,
-                    0
-                )
-
-                return (
-                    <div
-                        key={date}
-                        ref={isToday ? todayRef : undefined}
-                    >
-                      <IonItem
-                          button
-                          detail={false}
-                          lines="none"
-                          onClick={() => toggleDay(date)}
-                          style={{
-                            '--padding-start': '1rem',
-                            '--padding-end': '1rem',
-                            '--min-height': '44px',
-                            borderTop:
-                                sectionIdx > 0
-                                    ? '1px solid var(--ion-color-light-shade)'
-                                    : undefined,
-                          }}
-                      >
-                        <IonIcon
-                            slot="start"
-                            icon={
-                              isExpanded
-                                  ? chevronDownOutline
-                                  : chevronForwardOutline
-                            }
-                            style={{
-                              fontSize: '0.9rem',
-                              color: 'var(--ion-color-medium)',
-                              marginRight: '0.25rem',
-                            }}
-                        />
-
-                        <IonLabel>
-                          <div
-                              style={{
-                                fontSize: '0.8rem',
-                                fontWeight: 600,
-                                color: 'var(--ion-color-medium)',
-                              }}
-                          >
-                            {new Date(
-                                date + 'T00:00:00Z'
-                            ).toLocaleDateString('en', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-
-                            {isToday && ' · Today'}
-                          </div>
-                        </IonLabel>
-
-                        <div
-                            slot="end"
-                            style={{
-                              fontWeight: 600,
-                              color: 'var(--ion-color-dark)',
-                            }}
-                        >
-                          {dayTotal.toFixed(2)}{' '}
-                          {trip.defaultCurrency}
-                        </div>
-                      </IonItem>
-
-                      {isExpanded && (
-                          <IonList>
-                            {groupByCategory(items).map(
-                                ([categoryId, catItems]) => {
-                                  const cat = categoryById[categoryId]
-
-                                  return (
-                                      <div key={categoryId}>
-                                        <div
-                                            style={{
-                                              padding:
-                                                  '0.4rem 1rem 0.1rem',
-                                              fontSize: '0.8rem',
-                                              fontWeight: 700,
-                                              color:
-                                                  'var(--ion-color-dark)',
-                                            }}
-                                        >
-                                          {cat?.label ?? 'Other'}
-                                        </div>
-
-                                        {catItems.map(e => (
-                                            <IonItem
-                                                key={e.id}
-                                                lines="none"
-                                                button
-                                                onClick={() => {
-                                                  setEditExpense(e)
-                                                  setShowForm(true)
-                                                }}
-                                            >
-                                              <IonLabel>
-                                                <div
-                                                    style={{
-                                                      display: 'flex',
-                                                      alignItems:
-                                                          'center',
-                                                      gap: 6,
-                                                    }}
-                                                >
-                                                  {cat?.icon && (
-                                                      <span
-                                                          style={{
-                                                            fontSize:
-                                                                '0.85rem',
-                                                          }}
-                                                      >
-                                        {cat.icon}
-                                      </span>
-                                                  )}
-
-                                                  {e.note && (
-                                                      <p
-                                                          style={{
-                                                            margin: 0,
-                                                            fontSize:
-                                                                '0.9rem',
-                                                            color:
-                                                                'var(--ion-color-dark)',
-                                                          }}
-                                                      >
-                                                        {e.note}
-                                                      </p>
-                                                  )}
-                                                </div>
-                                              </IonLabel>
-
-                                              <div
-                                                  slot="end"
-                                                  style={{
-                                                    display: 'flex',
-                                                    alignItems:
-                                                        'center',
-                                                    gap: 8,
-                                                  }}
-                                              >
-                                                <div
-                                                    style={{
-                                                      textAlign: 'right',
-                                                    }}
-                                                >
-                                                  <div
-                                                      style={{
-                                                        fontWeight: 600,
-                                                      }}
-                                                  >
-                                                    {e.amount.toFixed(2)}{' '}
-                                                    {e.currency}
-                                                  </div>
-
-                                                  {e.currency !==
-                                                      trip.defaultCurrency && (
-                                                          <div
-                                                              style={{
-                                                                fontSize:
-                                                                    '0.75rem',
-                                                                color:
-                                                                    'var(--ion-color-medium)',
-                                                              }}
-                                                          >
-                                                            {e.amountConverted.toFixed(
-                                                                2
-                                                            )}{' '}
-                                                            {
-                                                              trip.defaultCurrency
-                                                            }
-                                                          </div>
-                                                      )}
-                                                </div>
-
-                                                <IonButton
-                                                    fill="clear"
-                                                    size="small"
-                                                    color="danger"
-                                                    onClick={ev => {
-                                                      ev.stopPropagation()
-                                                      ExpenseRepository.delete(
-                                                          e.id
-                                                      )
-                                                    }}
-                                                >
-                                                  <IonIcon
-                                                      icon={trashOutline}
-                                                  />
-                                                </IonButton>
-                                              </div>
-                                            </IonItem>
-                                        ))}
-                                      </div>
-                                  )
-                                }
-                            )}
-                          </IonList>
-                      )}
-                    </div>
-                )
-              })}
-        </IonContent>
-
-        <IonFab
-            vertical="bottom"
-            horizontal="end"
-            slot="fixed"
-        >
-          <IonFabButton
-              onClick={() => {
-                setEditExpense(undefined)
-                setShowForm(true)
-              }}
-          >
-            <IonIcon icon={add} />
-          </IonFabButton>
-        </IonFab>
-
-        <ExpenseFormModal
-            isOpen={showForm}
-            onDismiss={() => {
-              setShowForm(false)
-              setEditExpense(undefined)
-            }}
-            tripId={tripId}
-            tripCurrency={trip.defaultCurrency}
-            categories={categories}
-            expense={editExpense}
+        <BudgetBar
+          trip={trip}
+          totalSpent={totalSpent}
+          expenses={expenses}
         />
-      </IonPage>
+      </IonHeader>
+
+      <IonContent>
+        {expenses.length === 0 && (
+          <p
+            style={{
+              textAlign: 'center',
+              padding: '2rem',
+              color: 'var(--ion-color-medium)',
+            }}
+          >
+            No expenses yet
+          </p>
+        )}
+
+        {sortedSections
+          .slice(0, visibleSectionCount)
+          .map(([date, items], sectionIdx) => {
+            const isExpanded = isDayExpanded(date)
+            const isToday = date === today
+
+            const dayTotal = items.reduce(
+              (sum, allocation) =>
+                sum + allocation.amountConverted,
+              0
+            )
+
+            return (
+              <div
+                key={date}
+                ref={isToday ? todayRef : undefined}
+              >
+                <IonItem
+                  button
+                  detail={false}
+                  lines="none"
+                  onClick={() => toggleDay(date)}
+                  style={{
+                    '--padding-start': '1rem',
+                    '--padding-end': '1rem',
+                    '--min-height': '44px',
+                    borderTop:
+                      sectionIdx > 0
+                        ? '1px solid var(--ion-color-light-shade)'
+                        : undefined,
+                  }}
+                >
+                  <IonIcon
+                    slot="start"
+                    icon={
+                      isExpanded
+                        ? chevronDownOutline
+                        : chevronForwardOutline
+                    }
+                    style={{
+                      fontSize: '0.9rem',
+                      color: 'var(--ion-color-medium)',
+                      marginRight: '0.25rem',
+                    }}
+                  />
+
+                  <IonLabel>
+                    <div
+                      style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: 'var(--ion-color-medium)',
+                      }}
+                    >
+                      {new Date(
+                        date + 'T00:00:00Z'
+                      ).toLocaleDateString('en', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+
+                      {isToday && ' · Today'}
+                    </div>
+                  </IonLabel>
+
+                  <div
+                    slot="end"
+                    style={{
+                      fontWeight: 600,
+                      color: 'var(--ion-color-dark)',
+                    }}
+                  >
+                    {dayTotal.toFixed(2)}{' '}
+                    {trip.defaultCurrency}
+                  </div>
+                </IonItem>
+
+                {isExpanded && (
+                  <IonList>
+                    {groupByCategory(items).map(
+                      ([categoryId, catItems]) => {
+                        const cat = categoryById[categoryId]
+
+                        return (
+                          <div key={categoryId}>
+                            <div
+                              style={{
+                                padding:
+                                  '0.4rem 1rem 0.1rem',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                color:
+                                  'var(--ion-color-dark)',
+                              }}
+                            >
+                              {cat?.label ?? 'Other'}
+                            </div>
+
+                            {catItems.map(allocation => {
+                              const e = allocation.expense
+                              const isAccommodation =
+                                e.categoryId ===
+                                  'cat-accommodation' &&
+                                !!e.accommodationId
+
+                              return (
+                                <IonItem
+                                  key={`${e.id}-${allocation.date}`}
+                                  lines="none"
+                                  button
+                                  onClick={() => {
+                                    setEditExpense(e)
+                                    setShowForm(true)
+                                  }}
+                                >
+                                  <IonLabel>
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                      }}
+                                    >
+                                      {cat?.icon && (
+                                        <span
+                                          style={{
+                                            fontSize:
+                                              '0.85rem',
+                                          }}
+                                        >
+                                          {cat.icon}
+                                        </span>
+                                      )}
+
+                                      <div>
+                                        {e.note && (
+                                          <p
+                                            style={{
+                                              margin: 0,
+                                              fontSize:
+                                                '0.9rem',
+                                              color:
+                                                'var(--ion-color-dark)',
+                                            }}
+                                          >
+                                            {e.note}
+                                          </p>
+                                        )}
+
+                                        {isAccommodation && (
+                                          <p
+                                            style={{
+                                              margin:
+                                                '2px 0 0',
+                                              fontSize:
+                                                '0.75rem',
+                                              color:
+                                                'var(--ion-color-medium)',
+                                            }}
+                                          >
+                                            Accommodation allocation
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </IonLabel>
+
+                                  <div
+                                    slot="end"
+                                    style={{
+                                      display: 'flex',
+                                      alignItems:
+                                        'center',
+                                      gap: 8,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        textAlign: 'right',
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        {allocation.amount.toFixed(
+                                          2
+                                        )}{' '}
+                                        {e.currency}
+                                      </div>
+
+                                      {e.currency !==
+                                        trip.defaultCurrency && (
+                                        <div
+                                          style={{
+                                            fontSize:
+                                              '0.75rem',
+                                            color:
+                                              'var(--ion-color-medium)',
+                                          }}
+                                        >
+                                          {allocation.amountConverted.toFixed(
+                                            2
+                                          )}{' '}
+                                          {
+                                            trip.defaultCurrency
+                                          }
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <IonButton
+                                      fill="clear"
+                                      size="small"
+                                      color="danger"
+                                      onClick={ev => {
+                                        ev.stopPropagation()
+
+                                        ExpenseRepository.delete(
+                                          e.id
+                                        )
+                                      }}
+                                    >
+                                      <IonIcon
+                                        icon={trashOutline}
+                                      />
+                                    </IonButton>
+                                  </div>
+                                </IonItem>
+                              )
+                            })}
+                          </div>
+                        )
+                      }
+                    )}
+                  </IonList>
+                )}
+              </div>
+            )
+          })}
+      </IonContent>
+
+      <IonFab
+        vertical="bottom"
+        horizontal="end"
+        slot="fixed"
+      >
+        <IonFabButton
+          onClick={() => {
+            setEditExpense(undefined)
+            setShowForm(true)
+          }}
+        >
+          <IonIcon icon={add} />
+        </IonFabButton>
+      </IonFab>
+
+      <ExpenseFormModal
+        isOpen={showForm}
+        onDismiss={() => {
+          setShowForm(false)
+          setEditExpense(undefined)
+        }}
+        tripId={tripId}
+        tripCurrency={trip.defaultCurrency}
+        categories={categories}
+        expense={editExpense}
+      />
+    </IonPage>
   )
 }
 
