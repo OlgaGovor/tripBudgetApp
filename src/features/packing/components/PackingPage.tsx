@@ -64,7 +64,7 @@ const PackingPage: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={() => history.push('/')}><IonIcon icon={homeOutline} /></IonButton>
+            <IonButton onClick={() => history.push('/trips')}><IonIcon icon={homeOutline} /></IonButton>
           </IonButtons>
           <IonTitle>Packing</IonTitle>
           <IonButtons slot="end">

@@ -222,7 +222,7 @@ const ExpensesPage: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={() => history.push('/')}>
+            <IonButton onClick={() => history.push('/trips')}>
               <IonIcon icon={homeOutline} />
             </IonButton>
           </IonButtons>

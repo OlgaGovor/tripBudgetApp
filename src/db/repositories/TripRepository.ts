@@ -13,6 +13,10 @@ export const TripRepository = {
     return useLiveQuery(() => db.trips.orderBy('createdAt').reverse().toArray(), [])
   },
 
+  async getAll(): Promise<Trip[]> {
+    return db.trips.orderBy('createdAt').reverse().toArray()
+  },
+
   useById(id: string) {
     return useLiveQuery(() => db.trips.get(id), [id])
   },
