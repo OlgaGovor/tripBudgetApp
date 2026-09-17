@@ -9,7 +9,7 @@ import { TransportLegRepository } from '../../../db/repositories/TransportLegRep
 import type { Stop, TransportLeg } from '../../../db/schema'
 import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
-import CurrencySelectModal from './CurrencySelectModal'
+import CurrencySelectModal from '../../common/components/CurrencySelectModal.tsx'
 
 const LAST_USED_CURRENCY_KEY = 'expense-last-used-currency'
 

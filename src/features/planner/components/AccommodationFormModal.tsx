@@ -9,7 +9,7 @@ import { AccommodationRepository } from '../../../db/repositories/AccommodationR
 import type { Accommodation } from '../../../db/schema'
 import { db } from '../../../db/db'
 import PlaceSearchModal from './PlaceSearchModal'
-import CurrencySelectModal from './CurrencySelectModal'
+import CurrencySelectModal from '../../common/components/CurrencySelectModal.tsx'
 
 const LAST_USED_CURRENCY_KEY = 'expense-last-used-currency'
 
