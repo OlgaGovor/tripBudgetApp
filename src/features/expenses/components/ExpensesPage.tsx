@@ -32,6 +32,7 @@ import { useProgressiveCount } from '../../../lib/useProgressiveCount'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../../db/db'
 import { buildSpentByDate } from '../../../lib/expenseAllocation'
+import { getDayCardStatus, DAY_CARD_COLORS } from '../../../lib/budget'
 
 interface ExpenseAllocation {
   expense: Expense
@@ -66,6 +67,17 @@ const ExpensesPage: React.FC = () => {
       expenses,
       accommodations
   )
+
+  const effectiveDailyBudget = trip
+      ? (trip.budget.dailyAmount ||
+          (trip.budget.total && trip.endDate >= trip.startDate
+              ? trip.budget.total / (
+              (new Date(trip.endDate + 'T00:00:00Z').getTime() -
+                  new Date(trip.startDate + 'T00:00:00Z').getTime()) /
+              (1000 * 60 * 60 * 24) + 1
+          )
+              : undefined))
+      : undefined
 
   const accommodationById = Object.fromEntries(
     accommodations.map(a => [a.id, a])
@@ -316,12 +328,29 @@ const ExpensesPage: React.FC = () => {
                     </div>
                   </IonLabel>
 
+                  {/*<div*/}
+                  {/*  slot="end"*/}
+                  {/*  style={{*/}
+                  {/*    fontWeight: 600,*/}
+                  {/*    color: 'var(--ion-color-dark)',*/}
+                  {/*  }}*/}
+                  {/*>*/}
+                  {/*  {(spentByDate[date] ?? 0).toFixed(2)}{' '}*/}
+                  {/*  {trip.defaultCurrency}*/}
+                  {/*</div>*/}
                   <div
-                    slot="end"
-                    style={{
-                      fontWeight: 600,
-                      color: 'var(--ion-color-dark)',
-                    }}
+                      slot="end"
+                      style={{
+                        fontWeight: 600,
+                        color: effectiveDailyBudget
+                            ? DAY_CARD_COLORS[
+                                getDayCardStatus(
+                                    (spentByDate[date] ?? 0) /
+                                    effectiveDailyBudget
+                                )
+                                ]
+                            : 'var(--ion-color-dark)',
+                      }}
                   >
                     {(spentByDate[date] ?? 0).toFixed(2)}{' '}
                     {trip.defaultCurrency}

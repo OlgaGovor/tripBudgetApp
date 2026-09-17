@@ -109,10 +109,6 @@ const CalendarPage: React.FC = () => {
     ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))
     : undefined
 
-  // const spentByDate: Record<string, number> = {}
-  // for (const e of expenses) {
-  //   spentByDate[e.date] = (spentByDate[e.date] ?? 0) + e.amountConverted
-  // }
   const spentByDate = buildSpentByDate(
       expenses,
       accommodations
