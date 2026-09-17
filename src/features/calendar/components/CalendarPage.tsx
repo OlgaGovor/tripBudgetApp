@@ -16,6 +16,7 @@ import { isOvernightTransport } from '../../../db/repositories/TransportLegRepos
 import CalendarGrid from './CalendarGrid'
 import { getDayCardStatus, type BudgetStatus } from '../../../lib/budget'
 import { useProgressiveCount } from '../../../lib/useProgressiveCount'
+import { buildSpentByDate } from "../../../lib/expenseAllocation.ts";
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -108,10 +109,14 @@ const CalendarPage: React.FC = () => {
     ? (trip.budget.dailyAmount || (trip.budget.total && days.length > 0 ? trip.budget.total / days.length : undefined))
     : undefined
 
-  const spentByDate: Record<string, number> = {}
-  for (const e of expenses) {
-    spentByDate[e.date] = (spentByDate[e.date] ?? 0) + e.amountConverted
-  }
+  // const spentByDate: Record<string, number> = {}
+  // for (const e of expenses) {
+  //   spentByDate[e.date] = (spentByDate[e.date] ?? 0) + e.amountConverted
+  // }
+  const spentByDate = buildSpentByDate(
+      expenses,
+      accommodations
+  )
 
   const budgetStatusByDate: Record<string, BudgetStatus> = {}
   if (effectiveDailyBudget) {

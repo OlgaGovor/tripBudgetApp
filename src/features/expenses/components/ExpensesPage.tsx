@@ -31,6 +31,7 @@ import type { Expense } from '../../../db/schema'
 import { useProgressiveCount } from '../../../lib/useProgressiveCount'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../../db/db'
+import { buildSpentByDate } from '../../../lib/expenseAllocation'
 
 interface ExpenseAllocation {
   expense: Expense
@@ -60,6 +61,11 @@ const ExpensesPage: React.FC = () => {
   useEffect(() => {
     ExpenseRepository.getTotalConverted(tripId).then(setTotalSpent)
   }, [expenses, tripId])
+
+  const spentByDate = buildSpentByDate(
+      expenses,
+      accommodations
+  )
 
   const accommodationById = Object.fromEntries(
     accommodations.map(a => [a.id, a])
@@ -256,12 +262,6 @@ const ExpensesPage: React.FC = () => {
             const isExpanded = isDayExpanded(date)
             const isToday = date === today
 
-            const dayTotal = items.reduce(
-              (sum, allocation) =>
-                sum + allocation.amountConverted,
-              0
-            )
-
             return (
               <div
                 key={date}
@@ -323,7 +323,7 @@ const ExpensesPage: React.FC = () => {
                       color: 'var(--ion-color-dark)',
                     }}
                   >
-                    {dayTotal.toFixed(2)}{' '}
+                    {(spentByDate[date] ?? 0).toFixed(2)}{' '}
                     {trip.defaultCurrency}
                   </div>
                 </IonItem>

@@ -22,6 +22,7 @@ import DayCard from './DayCard'
 import TripFormModal from '../../trips/components/TripFormModal'
 import ExpenseFormModal from '../../expenses/components/ExpenseFormModal'
 import { useProgressiveCount } from '../../../lib/useProgressiveCount'
+import {buildSpentByDate} from "../../../lib/expenseAllocation.ts";
 
 /** Local (not UTC) YYYY-MM-DD for today, matching how day.date is stored. */
 function localTodayString(): string {
@@ -95,49 +96,53 @@ const PlannerPage: React.FC = () => {
       )
       : undefined
 
-  const spentByDate: Record<string, number> = {}
+  const spentByDate = buildSpentByDate(
+      expenses,
+      accommodations
+  )
+  // const spentByDate: Record<string, number> = {}
 
-  for (const e of expenses) {
-    if (e.categoryId === 'cat-accommodation' && e.accommodationId) {
-      const accommodation = accommodations.find(
-          a => a.id === e.accommodationId
-      )
-
-      if (accommodation) {
-        const checkIn = new Date(
-            accommodation.checkIn + 'T00:00:00Z'
-        )
-
-        const checkOut = new Date(
-            accommodation.checkOut + 'T00:00:00Z'
-        )
-
-        const nights = Math.round(
-            (checkOut.getTime() - checkIn.getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-
-        if (nights > 0) {
-          const dailyAmount = e.amountConverted / nights
-
-          for (let i = 0; i < nights; i++) {
-            const date = new Date(checkIn)
-            date.setUTCDate(date.getUTCDate() + i)
-
-            const dateKey = date.toISOString().slice(0, 10)
-
-            spentByDate[dateKey] =
-                (spentByDate[dateKey] ?? 0) + dailyAmount
-          }
-
-          continue
-        }
-      }
-    }
-
-    spentByDate[e.date] =
-        (spentByDate[e.date] ?? 0) + e.amountConverted
-  }
+  // for (const e of expenses) {
+  //   if (e.categoryId === 'cat-accommodation' && e.accommodationId) {
+  //     const accommodation = accommodations.find(
+  //         a => a.id === e.accommodationId
+  //     )
+  //
+  //     if (accommodation) {
+  //       const checkIn = new Date(
+  //           accommodation.checkIn + 'T00:00:00Z'
+  //       )
+  //
+  //       const checkOut = new Date(
+  //           accommodation.checkOut + 'T00:00:00Z'
+  //       )
+  //
+  //       const nights = Math.round(
+  //           (checkOut.getTime() - checkIn.getTime()) /
+  //           (1000 * 60 * 60 * 24)
+  //       )
+  //
+  //       if (nights > 0) {
+  //         const dailyAmount = e.amountConverted / nights
+  //
+  //         for (let i = 0; i < nights; i++) {
+  //           const date = new Date(checkIn)
+  //           date.setUTCDate(date.getUTCDate() + i)
+  //
+  //           const dateKey = date.toISOString().slice(0, 10)
+  //
+  //           spentByDate[dateKey] =
+  //               (spentByDate[dateKey] ?? 0) + dailyAmount
+  //         }
+  //
+  //         continue
+  //       }
+  //     }
+  //   }
+  //
+  //   spentByDate[e.date] =
+  //       (spentByDate[e.date] ?? 0) + e.amountConverted
+  // }
 
   let running = 0
 
