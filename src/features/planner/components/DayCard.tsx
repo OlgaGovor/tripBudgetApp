@@ -1,13 +1,13 @@
-// src/features/planner/components/DayCard.tsx
 import { useState, memo } from 'react'
 import { IonIcon, IonReorderGroup, type ItemReorderEventDetail } from '@ionic/react'
 import { chevronDownOutline, chevronUpOutline } from 'ionicons/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Accommodation, Day, TransportLeg } from '../../../db/schema'
+import type { Accommodation, Day, TransportLeg, Expense } from '../../../db/schema'
 import { db } from '../../../db/db'
 import { useStops } from '../hooks/useStops'
 import { DayRepository } from '../../../db/repositories/DayRepository'
 import { StopRepository } from '../../../db/repositories/StopRepository'
+import { ExpenseRepository } from '../../../db/repositories/ExpenseRepository'
 import { getDayCardStatus, DAY_CARD_COLORS } from '../../../lib/budget'
 import StopItem from './StopItem'
 import TransportCard from './TransportCard'
@@ -16,10 +16,20 @@ import StopFormModal from './StopFormModal'
 import TransportLegFormModal from './TransportLegFormModal'
 
 const METHOD_ICONS: Record<TransportLeg['method'], string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
+  car: '🚗',
+  bus: '🚌',
+  train: '🚆',
+  plane: '✈️',
+  walk: '🚶',
+  boat: '⛵',
+  ferry: '⛴️',
+  tour: '📸',
 }
+
 const STATUS_COLORS: Record<TransportLeg['status'], string> = {
-  not_booked: '#e74c3c', booked: '#f39c12', booked_paid: '#27ae60',
+  not_booked: '#e74c3c',
+  booked: '#f39c12',
+  booked_paid: '#27ae60',
 }
 
 interface Props {
@@ -35,11 +45,16 @@ interface Props {
   domId?: string
 }
 
-
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00Z')
-  const dayMonth = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) // "9 Jul"
-  const weekday = d.toLocaleDateString('en', { weekday: 'short' }) // "Thu"
+  const dayMonth = d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  })
+  const weekday = d.toLocaleDateString('en', {
+    weekday: 'short',
+  })
+
   return `${dayMonth}, ${weekday}`
 }
 
@@ -55,9 +70,16 @@ const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
     return (
       <div
         onClick={() => setExpanded(true)}
-        style={{ padding: '0.25rem 1rem', fontSize: '0.8rem', color: 'var(--ion-color-medium)', cursor: 'pointer' }}
+        style={{
+          padding: '0.25rem 1rem',
+          fontSize: '0.8rem',
+          color: 'var(--ion-color-medium)',
+          cursor: 'pointer',
+        }}
       >
-        {day.notes ? day.notes.slice(0, 60) + (day.notes.length > 60 ? '…' : '') : '+ Add notes'}
+        {day.notes
+          ? day.notes.slice(0, 60) + (day.notes.length > 60 ? '…' : '')
+          : '+ Add notes'}
       </div>
     )
   }
@@ -67,82 +89,262 @@ const NoteSection: React.FC<{ day: Day }> = ({ day }) => {
       autoFocus
       value={value}
       onChange={e => setValue(e.target.value)}
-      onBlur={() => { handleBlur(); setExpanded(false) }}
+      onBlur={() => {
+        handleBlur()
+        setExpanded(false)
+      }}
       placeholder="Notes for this day..."
-      style={{ width: '100%', minHeight: 80, padding: '0.5rem 1rem', border: 'none', background: 'transparent', fontSize: '0.85rem', resize: 'vertical' }}
+      style={{
+        width: '100%',
+        minHeight: 80,
+        padding: '0.5rem 1rem',
+        border: 'none',
+        background: 'transparent',
+        fontSize: '0.85rem',
+        resize: 'vertical',
+      }}
     />
   )
 }
 
 const InTransitCard: React.FC<{ leg: TransportLeg }> = ({ leg }) => {
-  const fromStop = useLiveQuery(() => db.stops.get(leg.fromStopId), [leg.fromStopId])
-  const toStop = useLiveQuery(() => db.stops.get(leg.toStopId), [leg.toStopId])
+  const fromStop = useLiveQuery(
+    () => db.stops.get(leg.fromStopId),
+    [leg.fromStopId]
+  )
+
+  const toStop = useLiveQuery(
+    () => db.stops.get(leg.toStopId),
+    [leg.toStopId]
+  )
+
   const arrTime = leg.arrivalDateTime?.slice(11, 16)
+
   return (
-    <div style={{
-      margin: '8px 10px 5px', padding: '7px 10px',
-      background: 'rgba(155,89,182,0.08)', borderRadius: 6,
-      borderLeft: '3px solid #9b59b6',
-      display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem',
-    }}>
-      <span style={{ fontSize: '1rem', flexShrink: 0 }}>{METHOD_ICONS[leg.method]}</span>
+    <div
+      style={{
+        margin: '8px 10px 5px',
+        padding: '7px 10px',
+        background: 'rgba(155,89,182,0.08)',
+        borderRadius: 6,
+        borderLeft: '3px solid #9b59b6',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: '0.85rem',
+      }}
+    >
+      <span style={{ fontSize: '1rem', flexShrink: 0 }}>
+        {METHOD_ICONS[leg.method]}
+      </span>
+
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 600, color: '#444' }}>
-          In transit · {fromStop?.placeName ?? '…'} → {toStop?.placeName ?? '…'}
+          In transit · {fromStop?.placeName ?? '…'} →{' '}
+          {toStop?.placeName ?? '…'}
         </div>
-        {arrTime && <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 1 }}>arrives {arrTime}</div>}
+
+        {arrTime && (
+          <div
+            style={{
+              fontSize: '0.75rem',
+              color: '#999',
+              marginTop: 1,
+            }}
+          >
+            arrives {arrTime}
+          </div>
+        )}
       </div>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLORS[leg.status], flexShrink: 0 }} />
+
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: STATUS_COLORS[leg.status],
+          flexShrink: 0,
+        }}
+      />
     </div>
   )
 }
 
-const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpent = 0, cumulativeSpent = 0, effectiveDailyBudget, currency, defaultCollapsed = false, domId }) => {
+const ExperienceExpenseCard: React.FC<{
+  expense: Expense
+  currency?: string
+}> = ({ expense, currency }) => {
+  return (
+    <div
+      style={{
+        margin: '5px 10px',
+        padding: '7px 10px',
+        background: 'rgba(52,152,219,0.08)',
+        borderRadius: 6,
+        borderLeft: '3px solid #3498db',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: '0.85rem',
+      }}
+    >
+      <span style={{ fontSize: '1rem', flexShrink: 0 }}>
+        📸
+      </span>
+
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          color: '#444',
+        }}
+      >
+        {expense.note || 'Experience'}
+      </div>
+
+      {/*<span*/}
+      {/*  style={{*/}
+      {/*    fontSize: '0.8rem',*/}
+      {/*    color: '#666',*/}
+      {/*    whiteSpace: 'nowrap',*/}
+      {/*  }}*/}
+      {/*>*/}
+      {/*  {expense.amountConverted.toFixed(0)} {currency}*/}
+      {/*</span>*/}
+    </div>
+  )
+}
+
+const DayCard: React.FC<Props> = ({
+  day,
+  tripId,
+  legs,
+  accommodations,
+  dailySpent = 0,
+  cumulativeSpent = 0,
+  effectiveDailyBudget,
+  currency,
+  defaultCollapsed = false,
+  domId,
+}) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const [showStopForm, setShowStopForm] = useState(false)
   const [addLegFromStopId, setAddLegFromStopId] = useState<string | null>(null)
+
   const { stops } = useStops(day.id)
 
-  const dayAccom = accommodations.find(a => a.id === day.accommodationId)
+  const dayExpenses =
+      ExpenseRepository.useByTripAndDate( tripId, day.date )
+  const experienceExpenses =
+      (dayExpenses ?? []).filter( expense => expense.categoryId === 'cat-experience' )
+
+    const dayAccom = accommodations.find(
+    a => a.id === day.accommodationId
+  )
+
   const legsForStop = (stopId: string): TransportLeg[] =>
     legs.filter(l => l.fromStopId === stopId)
 
   const inTransitLegs = legs.filter(l => {
     if (!l.departureDateTime || !l.arrivalDateTime) return false
+
     const depDate = l.departureDateTime.slice(0, 10)
     const arrDate = l.arrivalDateTime.slice(0, 10)
+
     return depDate < day.date && day.date <= arrDate
   })
 
-  function handleReorder(event: CustomEvent<ItemReorderEventDetail>) {
+  function handleReorder(
+    event: CustomEvent<ItemReorderEventDetail>
+  ) {
     const ids = stops.map(s => s.id)
     const [moved] = ids.splice(event.detail.from, 1)
+
     ids.splice(event.detail.to, 0, moved)
+
     event.detail.complete()
     StopRepository.reorder(day.id, ids)
   }
 
   return (
-    <div id={domId} style={{ borderRadius: 12, margin: '0.75rem 1rem', background: 'var(--ion-color-light)', overflow: 'hidden' }}>
+    <div
+      id={domId}
+      style={{
+        borderRadius: 12,
+        margin: '0.75rem 1rem',
+        background: 'var(--ion-color-light)',
+        overflow: 'hidden',
+      }}
+    >
       <div
         onClick={() => setCollapsed(c => !c)}
-        style={{ display: 'flex', alignItems: 'center', padding: '0.75rem 1rem', cursor: 'pointer', fontWeight: 600 }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0.75rem 1rem',
+          cursor: 'pointer',
+          fontWeight: 600,
+        }}
       >
-        <span style={{ flex: 1 }}>{formatDate(day.date)} • Day {day.dayNumber}</span>
+        <span style={{ flex: 1 }}>
+          {formatDate(day.date)} • Day {day.dayNumber}
+        </span>
+
         {effectiveDailyBudget && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginRight: 8,
+            }}
+          >
             {dailySpent > 0 && (
-              <span style={{ fontSize: '0.8rem', fontWeight: 400, color: DAY_CARD_COLORS[getDayCardStatus(dailySpent / effectiveDailyBudget)] }}>
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 400,
+                  color:
+                    DAY_CARD_COLORS[
+                      getDayCardStatus(
+                        dailySpent / effectiveDailyBudget
+                      )
+                    ],
+                }}
+              >
                 {dailySpent.toFixed(0)} {currency}
               </span>
             )}
-            <span style={{
-              display: 'inline-block', width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-              background: DAY_CARD_COLORS[getDayCardStatus(cumulativeSpent / (effectiveDailyBudget * day.dayNumber))],
-            }} />
+
+            <span
+              style={{
+                display: 'inline-block',
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                flexShrink: 0,
+                background:
+                  DAY_CARD_COLORS[
+                    getDayCardStatus(
+                      cumulativeSpent /
+                        (effectiveDailyBudget * day.dayNumber)
+                    )
+                  ],
+              }}
+            />
           </div>
         )}
-        <IonIcon icon={collapsed ? chevronDownOutline : chevronUpOutline} />
+
+        <IonIcon
+          icon={
+            collapsed
+              ? chevronDownOutline
+              : chevronUpOutline
+          }
+        />
       </div>
 
       {!collapsed && (
@@ -151,28 +353,52 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
             <InTransitCard key={leg.id} leg={leg} />
           ))}
 
-          <IonReorderGroup disabled={false} onIonItemReorder={handleReorder}>
-            {stops.map((stop) => {
+          <IonReorderGroup
+            disabled={false}
+            onIonItemReorder={handleReorder}
+          >
+            {stops.map(stop => {
               const stopLegs = legsForStop(stop.id)
+
               return (
                 <div key={stop.id}>
-                  <StopItem stop={stop} tripId={tripId} />
+                  <StopItem
+                    stop={stop}
+                    tripId={tripId}
+                  />
+
                   {stopLegs.length > 0
-                    ? stopLegs.map(leg => <TransportCard key={leg.id} leg={leg} />)
+                    ? stopLegs.map(leg => (
+                        <TransportCard
+                          key={leg.id}
+                          leg={leg}
+                        />
+                      ))
                     : (
-                      <div style={{ margin: '4px 10px 7px' }}>
+                      <div
+                        style={{
+                          margin: '4px 10px 7px',
+                        }}
+                      >
                         <button
-                          onClick={() => setAddLegFromStopId(stop.id)}
+                          onClick={() =>
+                            setAddLegFromStopId(stop.id)
+                          }
                           style={{
-                            fontSize: '0.75rem', color: '#bbb', background: 'none',
-                            border: '1px dashed #ddd', borderRadius: 10, padding: '3px 10px', cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            color: '#bbb',
+                            background: 'none',
+                            border: '1px dashed #ddd',
+                            borderRadius: 10,
+                            padding: '3px 10px',
+                            cursor: 'pointer',
                           }}
                         >
-                          ＋ add transport/tour after {stop.placeName}
+                          ＋ add transport/tour after{' '}
+                          {stop.placeName}
                         </button>
                       </div>
-                    )
-                  }
+                    )}
                 </div>
               )
             })}
@@ -181,14 +407,44 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
           <div
             onClick={() => setShowStopForm(true)}
             style={{
-              margin: '5px 10px', padding: '7px 10px',
-              borderRadius: 6, border: '1px dashed #b3c6ff', borderLeft: '3px solid #b3c6ff',
-              display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer',
+              margin: '5px 10px',
+              padding: '7px 10px',
+              borderRadius: 6,
+              border: '1px dashed #b3c6ff',
+              borderLeft: '3px solid #b3c6ff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: '1rem', opacity: 0.4 }}>📍</span>
-            <span style={{ color: '#3880ff', fontWeight: 500 }}>＋ Add stop</span>
+            <span
+              style={{
+                fontSize: '1rem',
+                opacity: 0.4,
+              }}
+            >
+              📍
+            </span>
+
+            <span
+              style={{
+                color: '#3880ff',
+                fontWeight: 500,
+              }}
+            >
+              ＋ Add stop
+            </span>
           </div>
+
+          {experienceExpenses.map(expense => (
+            <ExperienceExpenseCard
+              key={expense.id}
+              expense={expense}
+              currency={currency}
+            />
+          ))}
 
           <AccommodationDayCard
             accommodation={dayAccom}
@@ -201,15 +457,20 @@ const DayCard: React.FC<Props> = ({ day, tripId, legs, accommodations, dailySpen
       )}
 
       {showStopForm && (
-        <StopFormModal isOpen={true} onDismiss={() => setShowStopForm(false)} tripId={tripId} dayId={day.id} />
+        <StopFormModal
+          isOpen={true}
+          onDismiss={() => setShowStopForm(false)}
+          tripId={tripId}
+          dayId={day.id}
+        />
       )}
+
       {addLegFromStopId && (
         <TransportLegFormModal
           isOpen={true}
           onDismiss={() => setAddLegFromStopId(null)}
           tripId={tripId}
           fromStopId={addLegFromStopId}
-
           initialDate={day.date}
         />
       )}
