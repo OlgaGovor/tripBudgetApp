@@ -173,7 +173,7 @@ const InTransitCard: React.FC<{ leg: TransportLeg }> = ({ leg }) => {
 const ExperienceExpenseCard: React.FC<{
   expense: Expense
   currency?: string
-}> = ({ expense, currency }) => {
+}> = ({ expense }) => {
   return (
     <div
       style={{
