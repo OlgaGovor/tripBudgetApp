@@ -26,7 +26,7 @@ const TransportCard: React.FC<Props> = ({ leg }) => {
 
   const title =
       leg.method === 'tour' && leg.notes?.trim()
-          ? `Tour to ${leg.notes}`
+          ? `${leg.notes}`
           : `${fromStop?.placeName ?? '…'} → ${toStop?.placeName ?? '…'}`
 
   return (

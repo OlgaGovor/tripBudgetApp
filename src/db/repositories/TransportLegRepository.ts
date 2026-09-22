@@ -7,10 +7,6 @@ import { StopRepository } from './StopRepository'
 import { ExpenseRepository } from './ExpenseRepository'
 import { TripRepository } from './TripRepository'
 
-const METHOD_EMOJIS: Record<TransportLeg['method'], string> = {
-  car: '🚗', bus: '🚌', train: '🚆', plane: '✈️', walk: '🚶', boat: '⛵', ferry: '⛴️', tour: '📸',
-}
-
 async function syncExpenseForTransportLeg(legId: string): Promise<void> {
   const leg = await db.transportLegs.get(legId)
   if (!leg) return
@@ -21,7 +17,7 @@ async function syncExpenseForTransportLeg(legId: string): Promise<void> {
   }
   const fromStop = await db.stops.get(leg.fromStopId)
   const toStop = await db.stops.get(leg.toStopId)
-  const note = `${METHOD_EMOJIS[leg.method]} ${fromStop?.placeName ?? '?'} → ${toStop?.placeName ?? '?'}`
+  const note = leg.notes?.trim() || `${fromStop?.placeName ?? '?'} → ${toStop?.placeName ?? '?'}`
   const date = leg.departureDateTime ? leg.departureDateTime.slice(0, 10) : new Date().toISOString().slice(0, 10)
   // Tours are experiences, not transport.
   const categoryId = leg.method === 'tour' ? 'cat-experience' : 'cat-transport'
