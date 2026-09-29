@@ -333,16 +333,15 @@ const ExpenseFormModal: React.FC<Props> = ({
           </IonContent>
         </IonModal>
 
-        <CurrencySelectModal
+
+        {showCurrencySelect && (
+          <CurrencySelectModal
             isOpen={showCurrencySelect}
-            onDismiss={() =>
-                setShowCurrencySelect(false)
-            }
-            onSelect={code =>
-                setCurrency(code)
-            }
+            onDismiss={() => setShowCurrencySelect(false)}
+            onSelect={code => setCurrency(code)}
             selectedCode={currency}
-        />
+          />
+        )}
       </>
   )
 }
