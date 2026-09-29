@@ -19,11 +19,7 @@ import { db } from '../../../db/db'
 import type { Expense, ExpenseCategory } from '../../../db/schema'
 import { getExchangeRates, convertAmount } from '../../../lib/currency'
 import CurrencySelectModal from '../../common/components/CurrencySelectModal.tsx'
-
-const COMMON_CURRENCIES = [
-  'USD', 'EUR', 'GBP', 'PLN', 'UZS', 'TJS', 'KGS', 'KZT',
-  'CNY', 'JPY', 'CHF', 'AUD', 'CAD', 'CZK', 'NOK', 'SEK', 'DKK',
-]
+import { CURRENCIES } from '../../../constants/currencies.ts'
 
 const LAST_USED_CURRENCY_KEY = 'expense-last-used-currency'
 
@@ -94,7 +90,7 @@ const ExpenseFormModal: React.FC<Props> = ({
       setAmount('')
       setCurrency(
           lastUsedCurrency &&
-          COMMON_CURRENCIES.includes(lastUsedCurrency)
+          CURRENCIES.some(currency => currency.code === lastUsedCurrency)
               ? lastUsedCurrency
               : tripCurrency,
       )
