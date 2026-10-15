@@ -22,7 +22,7 @@ npx vitest run src/db/repositories/__tests__/TripRepository.test.ts   # single f
 npx vitest run -t "creates stop"                                      # by test name
 ```
 
-Node 20 is used in CI. `VITE_GOOGLE_CLIENT_ID` is the only env var; it is read in `src/sync/GoogleDriveSync.ts` and Google Drive sync is a no-op without it.
+Node 24 is used locally and in CI, pinned in `.nvmrc`. `VITE_GOOGLE_CLIENT_ID` is the only env var; it is read in `src/sync/GoogleDriveSync.ts` and Google Drive sync is a no-op without it.
 
 ## Architecture
 
