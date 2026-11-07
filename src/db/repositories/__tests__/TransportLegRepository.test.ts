@@ -102,6 +102,7 @@ describe('TransportLegRepository.delete', () => {
     const toStopId = leg.toStopId
     await TransportLegRepository.delete(legId)
     expect(await db.transportLegs.get(legId)).toBeUndefined()
-    expect(await db.stops.get(toStopId)).toBeUndefined()
+    expect(await db.stops.get(toStopId)).toBeDefined()
+    expect((await db.stops.get(toStopId))!.placeName).toBe('Lyon')
   })
 })
